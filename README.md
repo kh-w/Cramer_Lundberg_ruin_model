@@ -1,6 +1,8 @@
-# Report
+# Project
 
-The full report can be found <a href="https://github.com/kh-w/Cramer_Lundberg_ruin_model/blob/main/project_report_20190503.pdf">here</a>.
+- Derived closed form mathematical solution of Cramér–Lundberg ultimate ruin probability of a portfolio with/without investment income under various claim distributions
+- Used R to simulate and validate the closed form solution
+- Prepared the final <a href="https://github.com/kh-w/Cramer_Lundberg_ruin_model/blob/main/project_report_20190503.pdf">report</a> in LaTeX
 
 # Abstract
 
