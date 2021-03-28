@@ -1,5 +1,6 @@
+library(pracma)
 # Theta loop
-for (th in seq(0,0.5,0.1)){
+for (th in seq(-1,0.5,0.1)){
 
   graph = c();
   
@@ -11,11 +12,11 @@ for (th in seq(0,0.5,0.1)){
   # expected value of claims distribution
   alpha   <- 1/EX;
   # parameter of the exponential distribution
-  r       <- 0;                
+  r       <- 0.05;                
   # constant investment income
   n       <- 400+4000*(1-round(th/(th+0.000001),0));
-  # each simulation generates 400 claims except 4000 claims for u = 0
-  nSim    <- 10000;            
+  # each simulation generates 400 claims except 4400 claims for u = 0
+  nSim    <- 10000;
   # number of simulations, each simulation is a U process
   c.      <- (1+theta)*lab*EX  
   # premium rate with loading
@@ -23,7 +24,7 @@ for (th in seq(0,0.5,0.1)){
   matrix = c();
   
   # seed loop
-  for (seed in seq(1,10,2)){
+  for (seed in seq(1,10,1)){
     
     set.seed(seed)
     tobeplot = c();
@@ -93,7 +94,7 @@ for (th in seq(0,0.5,0.1)){
   ##############################################
   
   # Export plots as pdf
-  pdf(paste0("C:/Users/Woodrow/Documents/MATH 594/R Codes/No Investment/exponential/plots_theta_",gsub("\\.","",toString(theta)),".pdf"))
+  pdf(paste0("C:/Users/Woodrow/Documents/MATH 594/R Codes/Investment/exponential/plots_theta_",gsub("\\.","",toString(theta)),".pdf"))
   
   # Simulation plot
   plot(seq(0, 20, 0.5),graph[,1],
@@ -102,7 +103,13 @@ for (th in seq(0,0.5,0.1)){
        main=paste0("Claim Distribution: Exponential (Theta = ",theta,")"),
        type="p",pch=19)
   # Theoretical plot
-  points(seq(0, 20, 0.5),1-lab/(alpha*c.)*exp(-seq(0, 20, 0.5)*(alpha-lab/c.)),col="red",type="l",lwd=2)
+  A1 <- lab*exp(alpha*c./r);
+  A2 <- r*(alpha*c./r)^(lab/r);
+  G1 <- rep(0,length(seq(0, 20, 0.5)));
+  for (i in c(1:length(G1))){
+    G1[i] = incgam(alpha*c./r+alpha*seq(0, 20, 0.5)[i],lab/r);
+  }
+  points(seq(0, 20, 0.5),1-(A1*G1)/(A2+A1*incgam(alpha*c./r,lab/r)),col="red",type="l",lwd=2)
   legend(0, 1.15, c("Simulation"), col=c("blue"), pch=19);
   legend(0, 1.25, c("Theoretical"), col=c("red"), lwd=2, lty=c(1));
   

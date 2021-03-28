@@ -1,0 +1,1314 @@
+\documentclass[12pt]{article}
+\usepackage{times}        % Cannot show "Cramér" properly
+%\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage[svgnames]{xcolor}
+\usepackage[export]{adjustbox}
+\usepackage{listings}
+\usepackage{setspace}
+\usepackage{subcaption}
+\usepackage{hyperref}
+\usepackage{amsmath,amssymb,amsthm,amsfonts}
+\usepackage{verbatim}
+\usepackage{systeme}
+\usepackage{tocloft}
+\usepackage{placeins}
+\usepackage{pdfpages}
+
+\lstset{language=R,
+    basicstyle=\small\ttfamily,
+    stringstyle=\color{DarkGreen},
+    otherkeywords={0,1,2,3,4,5,6,7,8,9},
+    morekeywords={TRUE,FALSE},
+    deletekeywords={data,frame,length,as,character},
+    keywordstyle=\color{blue},
+    commentstyle=\color{DarkGreen},
+    breaklines=true,
+    frame=single
+}
+
+\newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+
+%page layout -------------------------------------------------
+%11pt
+%\hoffset=-0.775in
+%\voffset=-0.925in
+%\setlength{\textheight}{9.0in}
+%\setlength{\textwidth}{6.5in}
+%\setlength{\parindent}{3em}
+% 12pt
+\hoffset=-0.575in \voffset=-0.9in \setlength{\textheight}{9.0in}
+\setlength{\textwidth}{6.5in} \setlength{\parindent}{3em}
+
+\hypersetup{
+  colorlinks=true,
+  citecolor=Red,
+  linkcolor=Black}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+%\renewcommand{\baselinestretch}{1.2}
+\begin{center}
+{Master of Applied Mathematics Program}\\
+{Professional Master's Project Report}\\
+{Department of Applied Mathematics}\\
+{Illinois Institute of Technology}\\
+\vspace{4.5 cm}
+{\Large \bf Cramer-Lundberg Model}\\
+\vspace{4.5 cm} 
+{\Large Submitted by}\\
+\vspace{0.5 cm}
+{\Large Kin Hang Wong}\\
+\vspace{7cm} 
+\centerline{\emph{In
+partial fulfillment of the requirements of Master's candidates in}} 
+\centerline{\emph{Master of Applied 
+Mathematics Program}}
+\vspace{.1in}
+
+\vspace{.1in}
+\end{center}
+\thispagestyle{empty}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\begin{abstract}
+
+Ruin theory is motivated by the practical issue of solvency. Back in 1903, Swedish actuary Filip Lundberg introduced the Cramer-Lundberg model to understand the behaviour of the surplus process of insurance contracts. It became the foundation of modern ruin theory after Harald Cramer republished his work in 1930s.\\
+
+Based on the classic Cramer-Lundberg model, there are different variants/extensions. For example: Sparre Andersen model\cite{ref02}(the waiting time between claims is not restricted to be a Poisson distribution), Classical Cramer-Lundberg Model with Stochastic Investment Return \cite{ref01}.\\
+
+This project explained the mathematical structure of the Classic Cramer-Lundberg Model which is widely used by insurance industry. The simplest form of the model only consists initial capital, constant premium rate and an assumed claims distribution. Under this simple structure, we will show that the survival probability increases as the initial capital increases. Furthermore, if the surplus process lasts forever, we will show that probability of ruin is 100\% if the premium rate does not meet a criteria called "net profit condition".\\
+
+The simplest form of Cramer-Lundberg model is not enough for practical use for business. Therefore, throughout the derivation of the model, we should seek possibilities to implement additional features. One of the most intuitive and important feature is to implement investment income from bonds. Assuming the investment return is constant throughout the time horizon (from now to forever), i.e. no interest rate risks and no reinvestment risks,  the model behaves differently compare with no investments. We will show that the net profit condition is not required for ultimate survival as long as the initial capital is large enough to earn sufficient investment income to compensate the premium shortfall. This model could be a reference when pricing a single premium product.\\
+
+In this report, we will explore the Cramer-Lundberg model under three common claims distributions: Exponential, Hyper-exponential and Erlang distributions. The theoretical curve will be verified by simulations written in R\cite{ref03}.\\
+
+\end{abstract}
+
+\newpage
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newpage
+\section{Introduction}
+
+\hspace{12.2mm}Insurers sell insurance contracts to policyholders to protect them from unexpected financial crises. For example a lump sum for medical treatment on critical illnesses, a lump sum death benefit to protect the beneficiaries of the diseased or a series of payment to the policyholder to support his/her retirement. Since the premium required per contract is relatively small compare to the benefit amount, if the product is under-priced, insurer will be at risk due to insufficient fund (insolvency).\\
+
+Existing capital plus new premiums collected by insurer are responsible for the claims, expense, profit and investment. Therefore, it is utmost important to make sure the cash inflows(e.g. premium, investment income) for the insurer is sufficient to cover cash outflows(e.g. claims, expenses) to keep the business running and run good. For simplicity, this project will focus on the premium and claims. After the model structure being illustrated clearly, we will implement constant investment return and observe how the model behaves.\\
+
+The Cramer-Lundberg model \cite{ref01} has been used in insurance pricing for a long period of time. It was first introduced in 1903 by the Swedish actuary Filip Lundberg. The model measures the probability of ruin by assessing the surplus at all time points in terms of initial capital, constant premium rate and aggregate claim. The aggregate claim is a function of two independent random variables: number of claims and claim size. The number of claims follows a Poisson distribution; there is no restrictions on the claim size distribution.\\
+
+As expected, the probability of ruin depends on the initial capital as well as the premium rate. The model also provides information on the sensitivity of ruin probability by altering the premium rate.\\
+
+In section 2, we will explore the Cramer-Lundberg model under 3 different claims distribution: Exponential, Hyper-exponential and Erlang, when there is no investment income. We will see the ultimate ruin probability depends on the premium rate, i.e. whether it satisfied the net profit condition. After we derive the analytical solution, we will plot it against the simulation written in R.\\
+
+In section 3, we will add the constant investment income feature to the classic Cramer-Lundberg model. We can see the ultimate ruin probability no longer depends on the net profit condition. As long as the initial capital is large enough, the ultimate ruin probability is zero.\\
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Cramer-Lundberg Model: No investment income}
+The Cramer-Lundberg model involves the surplus $C_t$ at time \(t\) which is given by\cite{ref01}:
+\begin{equation}\label{CL-model}
+    C_t = u+ct-\sum_{i=1}^{N_t}X_i
+\end{equation}
+Here \(u\) is the initial capital, i.e.  \(C_0=u\), \(c\) is the constant premium rate, the sequence of claims \(\{X_1, X_2, ..., X_i\}\) are independent and identically distributed(i.i.d) random variables, and \(N_t\) is the number of claims occurred by time \(t\). The uncertainty comes from both \(X_i\) and \(N_t\), where \(N_t\) is assumed to follow a Poisson Process with rate \(\lambda\) and \(X_i\) has density function \(f(x)\) with \(E(X_i)=\mu\). In addition, we can denote the \(i^{th}\) claim occurred at \(T_i\) so that \(T_i-T_{i-1}\) follows exponential distribution with mean \(1/\lambda\).\\
+ \\
+Given this model, insurance companies are interested in some basic information:
+\begin{itemize}
+  \item \textbf{Probability of Ultimate Ruin} given initial capital \(u\) i.e.
+    \begin{equation}\label{Pr-Ul-ruin}
+        \psi(u) = Pr\Big(\inf_{s>0}\{C_s\}<0|C_0=u\Big)
+    \end{equation}
+    where the corresponding survival function is,
+    \begin{equation}\label{survival-f}
+        \phi(u) = 1-\psi(u)
+    \end{equation}
+  \item \textbf{Net Profit Condition}, i.e. \(c>\lambda\mu\), which is a necessary condition to guarantee that the surplus process has zero 
+  probability of ultimate ruin given infinite amount of initial capital, i.e.
+    \begin{equation}\label{net-profit1}
+        \lim_{u\to\infty}\psi(u)=\lim_{u\to\infty}Pr\Big(\inf_{s>0}\{C_s\}\leq0|C_0=u\Big)=0
+    \end{equation}
+    Or equivalently, the certainty of survival given infinite amount of initial capital,
+    \begin{equation}\label{net-profit}
+        \lim_{u\to\infty}\phi(u)=1
+    \end{equation}
+    \begin{proof} 
+    Let \(Y_i=c(T_{i}-T_{i-1})-X_i\) be the net cash inflow between claim times, i.e. total premium received between \(T_i\) and \(T_{i-1}\) minus the amount of the \(i^{th}\) claim occurred at time \(T_{i}\). Then, we require every \(Y_i\) to be positive to avoid ruin at all time, i.e.
+    \[\lim_{u\to\infty}Pr\Big(\inf_{s>0}\{C_s\}\leq0|C_0=u\Big)=0 \Longleftrightarrow \{Y_i:Y_i\leq0\}=\emptyset\]
+    Equivalently,
+    \[c(T_{i}-T_{i-1})-X_i>0\]
+    Since \(N_t\) is a Poisson process with mean \(\lambda\), the time between each claim is exponential with mean \(1/\lambda\). By taking expectation on both sides of the inequality, we obtained:
+    \begin{align*}
+    {cE(T_{i}-T_{i-1})-E(X_i)}&>{0}\\
+    {c/\lambda-\mu}&>{0}\\
+    {c}&>{\lambda\mu}={(1+\theta)\lambda\mu}\numberthis
+    \end{align*}
+    where \(\theta>0\) is called the \textbf{premium loading}.
+    \end{proof}
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{General Claims Distribution}
+Instead of looking at the ruin probability \(\psi(u)\), it is more convenient to look at the 
+ultimate survival probability \(\phi(u)=1-\psi(u)\).
+We now derive an equation for $\phi(u)$ using the Law of Total Probability.
+Consider two events: One claim occurred within time interval \(h\), i.e. \textit{Pr(One claim occurred within h) }\(=1-e^{-\lambda h}\), or not, i.e. \textit{Pr(No claims occurred within h) }\(=e^{-\lambda h}\), we obtained the following equation. 
+\begin{equation*}
+    \phi(u)=e^{-\lambda h}\phi(u+ch)+(1-e^{-\lambda h})\int_{0}^{\infty}\phi(u+ch-x)f(x)dx
+\end{equation*}
+where \(f(x)\) be the probability density function of 
+the claims sizes \(X_i\).  We perform some algebra to obtain
+\begin{equation*}
+    \frac{\phi(u)-\phi(u+ch)}{ch}=\frac{e^{-\lambda h}-1}{ch}\phi(u+ch)+\frac{1-e^{-\lambda h}}{ch}\int_{0}^{\infty}\phi(u+ch-x)f(x)dx
+\end{equation*}
+and taking $\displaystyle\lim_{h\to 0}$ on both sides, we obtain the \textbf{backward equation}, i.e.
+\begin{equation}
+    -\phi'(u)=\frac{-\lambda}{c}\phi(u)+\frac{\lambda}{c}\int_{0}^{\infty}\phi(u-x)f(x)dx
+\end{equation}
+Since \(\phi(x)=0\) for \(x<0\) (immediate ruin), we have the \textbf{Cramer-Lundberg equation}, i.e.
+\begin{equation}\label{CL-eq}
+    c\phi'(u)=\lambda\Big[\phi(u)-\int_{0}^{u}\phi(u-x)f(x)dx\Big]\\
+\end{equation}
+This is an integro-differential equation.  We have an auxiliary condition
+that survival is sure if the initial reserve is infinite, i.e. 
+\(\phi(\infty)=1\).   It will be useful to 
+have the condition at $u=0$,  \(\phi(0)\). \\
+We find \(\phi(0)\) as follows:
+\begin{align*}
+    c\int_{0}^{u}\phi'(x)dx &=\int_{0}^{u}\lambda\phi(x)dx-\int_{0}^{u}\int_{0}^{x}\lambda\phi(x-y)f(y)dydx\\
+    \frac{c}{\lambda}[\phi(u)-\phi(0)]&=\int_{0}^{u}\phi(x)dx-\int_{0}^{u}\int_{0}^{x}\phi(x-y)dF(y)dx\\
+    &=\int_{0}^{u}\phi(x)dx-\int_{0}^{u}\int_{0}^{x}\phi(x-y)dF(y)dx\\
+    &=\int_{0}^{u}\phi(x)dx-\int_{0}^{u}\int_{0}^{u-x}d[\phi(x)F(y)]dx\\
+    &=\int_{0}^{u}\phi(x)[1-F(u-x)]dx\\
+    &=\int_{0}^{u}\phi(u-x)[1-F(x)]dx\\
+\end{align*}
+where $F(x)$ is the probability distribution function of the claims.
+By taking $\displaystyle\lim_{u\to \infty}$ on both sides, since $\displaystyle\lim_{u\to \infty}\phi(u)=\lim_{u\to \infty}(1-\psi(u))=1$ and by net profit condition \(c>\lambda\mu\), we find \\
+\begin{align*}
+    \frac{c}{\lambda}[1-\phi(0)]&=\int_{0}^{\infty}[1-F(x)]dx\\
+    \frac{c}{\lambda}[1-\phi(0)]&=E(Claim Size)=\mu\\
+    \phi(0)&=1-\frac{\lambda\mu}{c}>0
+\end{align*}
+So that even if we start with a very small surplus, the ultimate probability
+of survival is not zero.
+We then obtained the problem,
+\begin{eqnarray}
+\displaystyle c\phi'(u)=\lambda\Big[\phi(u)-\int_{0}^{u}\phi(u-x)f(x)dx\Big]
+\label{c-l} \\
+\displaystyle \phi(0)=1-\frac{\lambda\mu}{c}, \;\; \phi(\infty)=1
+\label{condition}
+\end{eqnarray} 
+We can solve \eqref{c-l} with \eqref{condition} using Laplace transforms.  We
+define the Laplace transforms as
+ \(\mathcal{L}\{\phi(u)\}=\Phi(s)\) and \(\mathcal{L}\{f(u)\}=\Omega(s)\)
+ and then apply the Laplace transform to \eqref{c-l} with \eqref{condition}.
+We solve for $\Phi(s)$ to obtain
+\begin{equation}\label{Lap-Tr}
+    \Phi(s)=\frac{c(1-\frac{\lambda\mu}{c})}{cs+\lambda\Omega(s)-\lambda}=\frac{c-\lambda\mu}{cs+\lambda\Omega(s)-\lambda}
+\end{equation}
+\\
+Here \(\Omega(s)\) depends on the claims distribution, then using inverse Laplace Transformation on \(\Phi(s)\), we could solve for \(\phi(u)\) explicitly.
+
+%%%%%%%%%%%%%%%
+
+\subsection{Exponential Claims Distribution}
+
+If the claims amount follows the exponential distribution, i.e. 
+\[X_i\sim \exp(\alpha)\]
+then we have,
+\begin{align*}
+ F(x)&=1-e^{-\alpha x},
+ \hspace{0.5cm}
+ f(x)=\alpha e^{-\alpha x},
+ \hspace{0.5cm}
+ \mu=\frac{1}{\alpha}\\
+ \Omega(s)&=\mathcal{L}\{\alpha e^{-\alpha x}\}=\frac{\alpha}{\alpha+s}
+\end{align*}
+Equation \eqref{Lap-Tr} becomes,
+\begin{align*}
+\Phi(s)&=\frac{c-\frac{\lambda}{\alpha}}{cs+\lambda(\frac{\alpha}{\alpha+s})-\lambda}=\frac{(c\alpha-\lambda)(s+\alpha)}{s\alpha(sc+c\alpha-\lambda)}=\frac{1}{s}-\Big(\frac{\lambda}{c\alpha}\Big)\frac{1}{s+\frac{c\alpha-\lambda}{c}}
+\end{align*}
+then by inverse Laplace transformation,
+\begin{eqnarray}
+\phi(u)=1-\frac{\lambda}{c\alpha}e^{-(\alpha-\frac{\lambda}{c})u}\label{hahaha}\label{exp_noinv_surv}\\
+\psi(u)=\frac{\lambda}{c\alpha}e^{-(\alpha-\frac{\lambda}{c})u}\label{exp_noinv_ruin}
+\end{eqnarray}
+
+This theoretical survival function can be verified by simulation in R\cite{ref03}, see Figure (\ref{fig:expo-noinv-part1}) and Figure (\ref{fig:expo-noinv-part2}). For each initial capital amount \(u_i\), \(0\leq u_i\leq 20\) with increment \(0.5\), we generate 400 claims amount \textit{(4400 for \(u=0\) for better illustration)} for each of the 10000 simulations and see how many ruined cases among the 10000 simulations, this fraction is an approximated value of \(\phi(u_i)\). Plot the 41 points \((u_i,\phi(u_i))\), the survival function can be estimated. The survival probability depends on the premium loading \(\theta\), i.e. \(c=(1+\theta)\lambda\mu=(1+\theta)\lambda/\alpha\). If \(\theta\) is positive, net profit condition is met, otherwise net profit condition is not met. Graphs below compared the theoretical survival function and the simulated survival function for \(\theta\in\{0.5,0.4,0.3,0.2,0.1,0\}\). For cases that the net profit condition is not satisfied, i.e. \(\phi(u)=0\) for all u. The simulations failed to illustrate this nicely because finite amount of claims cannot mimic infinite time very well.
+
+\begin{figure}[!htbp]
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{expoplots/plots_theta_05.pdf} 
+\caption{\(\alpha=1, \theta=0.5\)}
+\label{exp_noinv_theta05}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{expoplots/plots_theta_04.pdf} 
+\caption{\(\alpha=1, \theta=0.4\)}
+\label{exp_noinv_theta04}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{expoplots/plots_theta_03.pdf} 
+\caption{\(\alpha=1, \theta=0.3\)}
+\label{exp_noinv_theta03}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{expoplots/plots_theta_02.pdf} 
+\caption{\(\alpha=1, \theta=0.2\)}
+\label{exp_noinv_theta02}
+\end{subfigure}
+\caption{Survival probability under exponential claims distribution without investment}
+\label{fig:expo-noinv-part1}
+\end{figure}
+\begin{figure}[!htbp]
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{expoplots/plots_theta_01.pdf} 
+\caption{\(\alpha=1, \theta=0.1\)}
+\label{exp_noinv_theta01}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{expoplots/plots_theta_0.pdf} 
+\caption{\(\alpha=1, \theta=0\)}
+\label{exp_noinv_theta0}
+\end{subfigure}
+\caption{When \(\theta=0\), the required no. of claims to ruin the process is way larger than the 4400 claims we used in the simulation as \(u\) increases. Therefore, we can see the discrepancy is larger when \(u\) is larger.}
+\label{fig:expo-noinv-part2}
+\end{figure}
+
+%%%%%%%%%%%%%%%
+
+\subsection{Hyper-exponential Claims Distribution}
+A hyper-exponential distribution is a mixture of n exponential distributions. If the claims distribution follows the hyper-exponential distribution, for simplicity we let \(n=2\) and \(\beta>\alpha\), i.e. 
+\[X_i\sim hyperexp \begin{pmatrix}{p,1-p}\\{\alpha,\beta}\end{pmatrix}\]
+then we have,
+\begin{align*}
+    F(x)&=1-pe^{-\alpha x}-(1-p)e^{-\beta x},
+    \hspace{0.5cm}
+    f(x)=p\alpha e^{-\alpha x}+(1-p)\beta e^{-\beta x}\\
+    \mu&=\frac{p}{\alpha}+\frac{1-p}{\beta}\\
+    \Omega(s)&=\mathcal{L}\{f(x)\}=\frac{p\alpha}{\alpha+s}+\frac{(1-p)\beta}{\beta+s}
+\end{align*}
+equation \eqref{Lap-Tr} becomes,
+\begin{align*}
+    \Phi(s)&=\frac{c-\lambda\mu}{cs+\lambda\big(\frac{p\alpha}{\alpha+s}+\frac{(1-p)\beta}{\beta+s}\big)-\lambda}=\frac{\big(1-\frac{\lambda\mu}{c}\big)(\alpha+s)(\beta+s)}{s\big[s^2+\big(\alpha+\beta-\frac{\lambda}{c}\big)s+\alpha\beta\big(1-\frac{\lambda\mu}{c}\big)\big]}
+\end{align*}
+by looking at $\displaystyle D(s)= s^2+\big(\alpha+\beta-\frac{\lambda}{c}\big)s+\alpha\beta\big(1-\frac{\lambda\mu}{c}\big)$, 
+\begin{align*}
+    \Delta&=\big(\alpha+\beta-\frac{\lambda}{c}\big)^2-4\alpha\beta\big(1-\frac{\lambda\mu}{c}\big)=\big(\beta-\alpha-\frac{\lambda}{c}\big)^2+\frac{4\lambda p(\beta-\alpha)}{c}>0.
+\end{align*}
+This implies we could perform partial fraction on \(\Phi(s)\) and get,
+\begin{align*}
+    \Phi(s)&=\frac{A}{s}+\frac{B}{s-r_1}+\frac{C}{s-r_2}\\
+    \phi(u)&=A+Be^{r_1u}+Ce^{r_2u}\\
+    \psi(u)&=1-A-Be^{r_1u}-Ce^{r_2u}
+\end{align*}
+where \(r_1\) and \(r_2\) are distinct real roots of \(D(s)=0\).\\
+Now we have to find \(r_1, r_2, A, B\) and \(C\) to complete \(\psi(u)\). From the partial fraction,
+\begin{align*}
+    \big(1-\frac{\lambda\mu}{c}\big)(\alpha+s)(\beta+s)&=A(s-r_1)(s-r_2)+Bs(s-r_2)+Cs(s-r_1)\\
+    s=0 \implies A&=1\\
+    s=r_1 \implies B&=\frac{\big(1-\frac{\lambda\mu}{c}\big)(r_1+\alpha)(r_1+\beta)}{r_1(r_1-r_2)}\\
+    s=r_2 \implies C&=\frac{\big(1-\frac{\lambda\mu}{c}\big)(r_2+\alpha)(r_2+\beta)}{r_2(r_2-r_1)}\\
+    (r_1,r_2)&=\bigg(\frac{-\big(\alpha+\beta-\frac{\lambda}{c}\big)+\sqrt{\Delta}}{2},\frac{-\big(\alpha+\beta-\frac{\lambda}{c}\big)-\sqrt{\Delta}}{2}\bigg)\\
+    \Delta &= \big(\alpha+\beta-\frac{\lambda}{c}\big)^2-4\alpha\beta\big(1-\frac{\lambda\mu}{c}\big)
+\end{align*}
+By product of roots and net profit condition, i.e.  \(1-\frac{\lambda\mu}{c}>0\), we have
+\begin{align*}
+    r_1&=\frac{-\big(\alpha+\beta-\frac{\lambda}{c}\big)+\sqrt{\big(\alpha+\beta-\frac{\lambda}{c}\big)^2-4\alpha\beta\big(1-\frac{\lambda\mu}{c}\big)}}{2}<0\\
+    r_1 r_2&=\alpha\beta\big(1-\frac{\lambda\mu}{c}\big)>0 \implies r_2<0
+\end{align*}
+After all, \(\phi(u)\) and \(\psi(u)\) could be found by gathering all information below:
+\begin{align*}
+    \phi(u)&=1+\Bigg[\frac{\big(1-\frac{\lambda\mu}{c}\big)(r_1+\alpha)(r_1+\beta)}{r_1\sqrt{\Delta}}\Bigg]e^{r_1u}+\Bigg[\frac{\big(1-\frac{\lambda\mu}{c}\big)(r_2+\alpha)(r_2+\beta)}{-r_2\sqrt{\Delta}}\Bigg]e^{r_2u}\numberthis\label{hyperexp_surv}\\
+    \psi(u)&=1-\phi(u)\\
+    \mu&=\frac{p}{\alpha}+\frac{1-p}{\beta},
+    \hspace{0.5cm}
+    \Delta = \big(\alpha+\beta-\frac{\lambda}{c}\big)^2-4\alpha\beta\big(1-\frac{\lambda\mu}{c}\big)\\
+    r_1&=\frac{-\big(\alpha+\beta-\frac{\lambda}{c}\big)+\sqrt{\Delta}}{2},
+    \hspace{0.5cm}
+    r_2=\frac{-\big(\alpha+\beta-\frac{\lambda}{c}\big)-\sqrt{\Delta}}{2}
+\end{align*}
+Simulation vs theoretical plots are shown in Figure (\ref{fig:hyperexpo-noinv-part}). In the simulations, \(c=(1+\theta)\lambda\big(\frac{p}{\alpha}+\frac{1-p}{\beta}\big)\).
+\begin{figure}[!htbp]
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{hyperexpoplots/plots_theta_05.pdf} 
+\caption{\(\alpha=1, \theta=0.5\)}
+\label{hyperexp_noinv_theta05}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{hyperexpoplots/plots_theta_04.pdf} 
+\caption{\(\alpha=1, \theta=0.4\)}
+\label{hyperexp_noinv_theta04}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{hyperexpoplots/plots_theta_03.pdf} 
+\caption{\(\alpha=1, \theta=0.3\)}
+\label{hyperexp_noinv_theta03}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{hyperexpoplots/plots_theta_02.pdf} 
+\caption{\(\alpha=1, \theta=0.2\)}
+\label{hyperexp_noinv_theta02}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{hyperexpoplots/plots_theta_01.pdf} 
+\caption{\(\alpha=1, \theta=0.1\)}
+\label{hyperexp_noinv_theta01}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{hyperexpoplots/plots_theta_0001.pdf} 
+\caption{\(\alpha=1, \theta=0.001\)}
+\label{hyperexp_noinv_theta0}
+\end{subfigure}
+\vspace{-10pt}
+\caption{Survival probability under Hyper-exponential claims distribution without investment. Note that for illustration purpose, \(\theta=0.001\) is used to approximate \(\theta=0\). When \(\theta=0\), the required no. of claims to ruin the process is way larger than the 4400 claims we used in the simulation as \(u\) increases. Therefore, we can see the discrepancy is larger when \(u\) is larger.}
+\vspace{-10pt}
+\label{fig:hyperexpo-noinv-part}
+\end{figure}
+\newline
+By putting \(p=1\), hyper-exponential distribution will be reduced to exponential distribution, i.e.
+\begin{align*}
+    \mu&=\frac{1}{\alpha},
+    \hspace{0.5cm}
+    \Delta=\big(\alpha-\frac{\lambda}{c}\big)^2\\
+    r_1&=0,
+    \hspace{0.5cm}
+    r_2=-\alpha+\frac{\lambda}{c}
+\end{align*}
+Therefore,
+\begin{align}
+    \phi(u)&=1-\frac{\lambda}{c\alpha}\exp^{-(\alpha-\frac{\lambda}{c})u}
+    \label{hyper-exp-surv}\\
+    \psi(u)&=\frac{\lambda}{c\alpha}\exp^{-(\alpha-\frac{\lambda}{c})u}
+    \label{hyper-exp-ruin}
+\end{align}
+which agrees with the previous result \eqref{exp_noinv_surv} and \eqref{exp_noinv_ruin}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Erlang Claims Distribution}
+    \hspace{5.3mm}An Erlang distribution is a special case of Gamma distributions where the shape parameter \(k\) is an integer. If the claims distribution follows Erlang distribution, for simplicity we let \(shape=k=2\) and \(rate=\beta=2\) such that the mean of the distribution is \(1\), i.e. 
+    \[X_i\sim Gamma(k=2,\beta)\]
+    Then we have,
+    \begin{align*}
+     F(x)&=\gamma(2,\beta x)=1-e^{-\beta x}-\beta xe^{-\beta x},
+     \hspace{0.5cm}
+     f(x)=\beta^2xe^{-\beta x}\\
+     \mu&=\frac{2}{\beta}\\
+     \Omega(s)&=\mathcal{L}\{\beta^2xe^{-\beta x}\}=\frac{\beta^2}{(s+\beta)^2}
+    \end{align*}
+    Equation \eqref{Lap-Tr} becomes,
+    \begin{align*}
+        \Phi(s)&=\frac{c-\frac{2\lambda}{\beta}}{cs+\frac{\beta^2\lambda}{(s+\beta)^2}-\lambda}\\
+        &=\frac{(c-\frac{2\lambda}{\beta})(s+\beta)^2}{cs[s^2+(2\beta-\lambda/c)s+\beta(\beta-2\lambda/c)]}\\
+        &=\frac{(c-\frac{2\lambda}{\beta})(s+\beta)^2}{cs(s-r_1)(s-r_2)}\numberthis\label{laplace_gamma_inv}\\
+        r_1&=\frac{-(2\beta-\lambda/c)+\sqrt{(2\beta-\lambda/c)^2-4\beta(\beta-2\lambda/c)}}{2}<0,
+        \hspace{0.5cm}
+        c>\lambda\mu=\frac{2\lambda}{\beta}\\
+        r_2&=\frac{-(2\beta-\lambda/c)-\sqrt{(2\beta-\lambda/c)^2-4\beta(\beta-2\lambda/c)}}{2}<0,
+        \hspace{0.5cm}
+        c>\frac{2\lambda}{\beta}
+    \end{align*}
+    By partial fraction, \eqref{laplace_gamma_inv} becomes,
+    \begin{align*}
+        \Phi(s)&=\frac{1}{s}+\frac{(c-\lambda)(r_1+\beta)^2}{cr_1(r_1-r_2)}\frac{1}{s-r_1}+\frac{(c-\lambda)(r_2+\beta)^2}{cr_2(r_2-r_1)}\frac{1}{s-r_2}\\
+        \phi(u)&=1+\frac{(c-\frac{2\lambda}{\beta})(r_1+\beta)^2}{cr_1(r_1-r_2)}e^{r_1u}+\frac{(c-\frac{2\lambda}{\beta})(r_2+\beta)^2}{cr_2(r_2-r_1)}e^{r_2u}\numberthis\label{gamma_noinv_surv}
+    \end{align*}
+    The simulation results are shown in Figure (\ref{fig:image2}). Note that in the simulations, \(c=(1+\theta)\frac{2\lambda}{\beta}\).
+\begin{figure}[!htbp]
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{gammaplots/plots_theta_05.pdf} 
+\caption{\(\alpha=2, \beta=2, \theta=0.5\)}
+\label{gamma_noinv_theta05}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{gammaplots/plots_theta_04.pdf} 
+\caption{\(\alpha=2, \beta=2, \theta=0.4\)}
+\label{gamma_noinv_theta04}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{gammaplots/plots_theta_03.pdf} 
+\caption{\(\alpha=2, \beta=2, \theta=0.3\)}
+\label{gamma_noinv_theta03}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{gammaplots/plots_theta_02.pdf} 
+\caption{\(\alpha=2, \beta=2, \theta=0.2\)}
+\label{gamma_noinv_theta02}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{gammaplots/plots_theta_01.pdf} 
+\caption{\(\alpha=2, \beta=2, \theta=0.1\)}
+\label{gamma_noinv_theta01}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{gammaplots/plots_theta_0001.pdf} 
+\caption{\(\alpha=2, \beta=2, \theta=0.001\)}
+\label{gamma_noinv_theta0001}
+\end{subfigure}
+\caption{Survival probability under Erlang claims distribution without investment. Note that for illustration purpose, \(\theta=0.001\) is used to approximate \(\theta=0\). When \(\theta=0\), the required no. of claims to ruin the process is way larger than the 4400 claims we used in the simulation as \(u\) increases. Therefore, we can see the discrepancy is larger when \(u\) is larger.}
+\vspace{-10pt}
+\label{fig:image2}
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Cramer-Lundberg Model: Constant investment income}
+
+\subsection{Exponential Claims Distribution}
+
+Recall equation \eqref{CL-eq}, the left side indicating the constant cash-inflow from premiums. A similar equation consisting stochastic investment is stated by Asmussen as equation (6.1) in his book\cite{ref01}. To use the same equation for constant investment, there would be no variance and no Brownian motion, i.e. 
+\begin{equation}\label{CL-eq-with-r}
+    (c+ru)\phi'(u)=\lambda\Big[\phi(u)-\int_{0}^{u}\phi(u-x)f(x)dx\Big]
+\end{equation}
+when the claim distribution is exponential, $f(x)=\alpha e^{-\alpha x}$, then \eqref{CL-eq-with-r} becomes,
+\begin{equation}\label{CL-eq-with-r-exp}
+    (c+ru)\phi'(u)=\lambda\Big[\phi(u)-\int_{0}^{u}\phi(u-x)\alpha e^{-\alpha x}dx\Big]
+\end{equation}
+where
+\begin{equation}\label{exp_inv_IC}
+    \phi(\infty)=1,
+    \hspace{0.5cm}
+    c\phi'(0)-\lambda\phi(0)=0.
+\end{equation}
+Equation \eqref{CL-eq-with-r-exp} cannot be solved easily using Laplace Transformation. Instead, we convert \eqref{CL-eq-with-r-exp} into an ODE. First we let $y=u-x$, \\
+\begin{align*}
+    \int_{0}^{u}\phi(u-x)\alpha e^{-\alpha x}dx= \alpha e^{-\alpha u} \int_{0}^{u}\phi(y)e^{\alpha y}dy
+\end{align*}
+now \eqref{CL-eq-with-r-exp} becomes,
+\begin{equation}\label{exp_inv_integro_differential}
+    (c+ru)[e^{\alpha u}\phi'(u)]=\lambda\Big[e^{\alpha u}\phi(u)-\alpha\int_{0}^{u}\phi(y)e^{\alpha y}dy\Big]
+\end{equation}
+we now differentiate both sides,
+\begin{align*}
+    re^{\alpha u}\phi'(u)+(c+ru)[\alpha e^{\alpha u}\phi'(u)+e^{\alpha u}\phi''(u)]=\lambda\Big[e^{\alpha u}\phi'(u)+\alpha e^{\alpha u}\phi(u)-\alpha\phi(u)e^{\alpha u}\Big]\\
+\end{align*}
+by grouping terms,
+\begin{equation}
+    \frac{\phi''(u)}{\phi'(u)}=\frac{\lambda-r-\alpha(c+ru)}{c+ru}\\
+\end{equation}
+by integrating both sides,
+\begin{align*}
+    ln[\phi'(u)]&=\frac{\lambda-r}{r}ln(c+ru)-\alpha u+K\\
+    \phi'(u)&=K_1(c+ru)^{\frac{\lambda}{r}-1}e^{-\alpha u}\numberthis \label{exp_inv_differential}
+\end{align*}
+by integrating again,
+\begin{equation}
+    \phi(u)=K_2-K_1\int^{\infty}_{u}(c+r\hat{u})^{\frac{\lambda}{r}-1}e^{-\alpha \hat{u}}d\hat{u}
+\end{equation}
+now we let \(w=c+r\hat{u}\),
+\begin{align*}
+    \phi(u)&=K_2-\frac{K_1}{r}\int^{\infty}_{c+ru}w^{\frac{\lambda}{r}-1}e^{-\alpha (\frac{w-c}{r})}dw\\
+    &=K_2-K_1\Big(\frac{r}{\alpha}\Big)^{\frac{\lambda}{r}-1}\frac{e^{\frac{\alpha c}{r}}}{\alpha}\int^{\infty}_{c+ru}\Big(\frac{\alpha w}{r}\Big)^{\frac{\lambda}{r}-1}e^{- (\frac{\alpha w}{r})}d\Big(\frac{\alpha w}{r}\Big)\\
+    &=K_2-K_1\Big(\frac{r}{\alpha}\Big)^{\frac{\lambda}{r}-1}\frac{e^{\frac{\alpha c}{r}}}{\alpha}\Gamma\Big(\frac{\lambda}{r},\frac{\alpha c}{r}+\alpha u\Big)\numberthis
+\end{align*}
+where \(\Gamma\) is the upper incomplete gamma function. By \eqref{exp_inv_IC} and taking $\displaystyle\lim_{u\to \infty}$ on both sides, we can get \(K_2=1\)
+Therefore, we have a boundary value problem,
+\begin{align}
+    \phi(u)&=1-K_1\Big(\frac{r}{\alpha}\Big)^{\frac{\lambda}{r}-1}\frac{e^{\frac{\alpha c}{r}}}{\alpha}\Gamma\Big(\frac{\lambda}{r},\frac{\alpha c}{r}+\alpha u\Big)\\
+    \phi'(u)&=K_1(c+ru)^{\frac{\lambda}{r}-1}e^{-\alpha u}\\
+    c\phi'(0)-\lambda\phi(0)&=0\\
+    \phi(\infty)&=1
+\end{align}
+by substitution, $K_1$ could be found as below,
+\begin{align*}
+    K_1=\frac{\lambda}{c^{\frac{\lambda}{r}}+\frac{\lambda}{\alpha}\big(\frac{r}{\alpha}\big)^{\frac{\lambda}{r}-1}e^{\frac{\alpha c}{r}}{\alpha}\Gamma\big(\frac{\lambda}{r},\frac{\alpha c}{r}\big)}
+\end{align*}
+therefore,
+\begin{equation}\label{survival-f-exp-with-r}
+    \phi(u)=1-\frac{\lambda e^{\frac{\alpha c}{r}}\Gamma\big(\frac{\lambda}{r},\frac{\alpha c}{r}+\alpha u\big)}{r\big(\frac{\alpha c}{r}\big)^{\frac{\lambda}{r}}+\lambda e^{\frac{\alpha c}{r}}\Gamma\big(\frac{\lambda}{r},\frac{\alpha c}{r}\big)}
+\end{equation}
+The same result can be found by Mathematica using the code in Appendix.\\
+Using \(c=(1+\theta)\lambda/\alpha\), The simulation results are shown in Figure (\ref{fig:image4}) and Figure (\ref{fig:image5}). Note that \(\theta\) does not necessary to be positive, means that net profit condition is not a must for survival. Note that if \(\theta=-1\), \(c=0\) means no premiums.
+
+\begin{figure}[!htbp]
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{expoplots_inv/plots_theta_05.pdf} 
+\caption{\(\alpha=1, \theta=0.5, r=0.05\)}
+\label{exp_inv_theta05}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{expoplots_inv/plots_theta_04.pdf} 
+\caption{\(\alpha=1, \theta=0.4, r=0.05\)}
+\label{exp_inv_theta04}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{expoplots_inv/plots_theta_03.pdf} 
+\caption{\(\alpha=1, \theta=0.3, r=0.05\)}
+\label{exp_inv_theta03}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{expoplots_inv/plots_theta_02.pdf} 
+\caption{\(\alpha=1, \theta=0.2, r=0.05\)}
+\label{exp_inv_theta02}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{expoplots_inv/plots_theta_01.pdf} 
+\caption{\(\alpha=1, \theta=0.1, r=0.05\)}
+\label{exp_inv_theta01}
+\end{subfigure}
+\caption{\\Survival probability under exponential claims distribution with investment under positive \(\theta\)}
+\label{fig:image4}
+\end{figure}
+
+\begin{figure}[!htbp]
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{expoplots_inv/plots_theta_0.pdf} 
+\caption{\(\alpha=1, \theta=0, r=0.05\)}
+\label{exp_inv_theta0}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{expoplots_inv/plots_theta_-02.pdf} 
+\caption{\(\alpha=1, \theta=-0.2, r=0.05\)}
+\label{exp_inv_theta-02}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{expoplots_inv/plots_theta_-04.pdf} 
+\caption{\(\alpha=1, \theta=-0.4, r=0.05\)}
+\label{exp_inv_theta-04}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{expoplots_inv/plots_theta_-06.pdf} 
+\caption{\(\alpha=1, \theta=-0.6, r=0.05\)}
+\label{exp_inv_theta-06}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{expoplots_inv/plots_theta_-08.pdf} 
+\caption{\(\alpha=1, \theta=-0.8, r=0.05\)}
+\label{exp_inv_theta-08}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{expoplots_inv/plots_theta_-1.pdf} 
+\caption{\(\alpha=1, \theta=-1, r=0.05\)}
+\label{exp_inv_theta-1}
+\end{subfigure}
+\caption{\\Survival probability under exponential claims distribution with investment under negative \(\theta\)}
+\label{fig:image5}
+\end{figure}
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Erlang Claims Distribution Simulation}
+If the claim amount follows an Erlang distribution, the survival probability is similar to the exponential distribution case. Using \(c=(1+\theta)\frac{2\lambda}{\beta}\), the simulations are shown in Figure (\ref{fig:image6}).
+\begin{figure}[!htbp]
+%\begin{subfigure}{0.5\textwidth}
+%\includegraphics[scale=0.35]{gammaplots_inv/plots_theta_05.pdf} 
+%\caption{\(\alpha=1, \theta=0.5, r=0.05\)}
+%\label{gamma_inv_theta05}
+%\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{gammaplots_inv/plots_theta_04.pdf} 
+\caption{\(\alpha=1, \theta=0.4, r=0.05\)}
+\label{gamma_inv_theta04}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{gammaplots_inv/plots_theta_03.pdf} 
+\caption{\(\alpha=1, \theta=0.3, r=0.05\)}
+\label{gamma_inv_theta03}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{gammaplots_inv/plots_theta_02.pdf} 
+\caption{\(\alpha=1, \theta=0.2, r=0.05\)}
+\label{gamma_inv_theta02}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{gammaplots_inv/plots_theta_01.pdf} 
+\caption{\(\alpha=1, \theta=0.1, r=0.05\)}
+\label{gamma_inv_theta01}
+\end{subfigure}
+\caption{\\Survival probability under Erlang claims distribution with investment under positive \(\theta\)}
+\label{fig:image6}
+\end{figure}
+\begin{figure}[!htbp]
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{gammaplots_inv/plots_theta_0001.pdf} 
+\caption{\(\alpha=1, \theta=0.001, r=0.05\)}
+\label{gamma_inv_theta0001}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{gammaplots_inv/plots_theta_-02.pdf} 
+\caption{\(\alpha=1, \theta=-0.2, r=0.05\)}
+\label{gamma_inv_theta-02}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{gammaplots_inv/plots_theta_-04.pdf} 
+\caption{\(\alpha=1, \theta=-0.4, r=0.05\)}
+\label{gamma_inv_theta-04}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{gammaplots_inv/plots_theta_-06.pdf} 
+\caption{\(\alpha=1, \theta=-0.6, r=0.05\)}
+\label{gamma_inv_theta-06}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{gammaplots_inv/plots_theta_-08.pdf} 
+\caption{\(\alpha=1, \theta=-0.8, r=0.05\)}
+\label{gamma_inv_theta-08}
+\end{subfigure}
+\begin{subfigure}{0.5\textwidth}
+\includegraphics[scale=0.35]{gammaplots_inv/plots_theta_-1.pdf} 
+\caption{\(\alpha=1, \theta=-1, r=0.05\)}
+\label{gamma_inv_theta-1}
+\end{subfigure}
+\caption{\\Survival probability under Erlang claims distribution with investment under negative \(\theta\)}
+\label{fig:image7}
+\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newpage
+\section{Conclusion}
+
+\hspace{1.2cm}In the simplest form of Cramer-Lundberg model, we can conclude that if the claim distribution has a probability distribution function \(f(x)\) (p.d.f.) such that \(\mathcal{L}\{f(u)\}=\Omega(s)\) exists and if we can perform inverse transformation on \eqref{Lap-Tr}, then we can find the analytical solution for \(\phi(u)=\mathcal{L}^{-1}\{\Phi(s)\}\).\\
+
+To attain the goal such that survival probability given \(u\), i.e.\(\phi(u)\), is 1 as \(u\) tends to \(\infty\) (infinite initial capital guarantees survival of the surplus process as time \(t\) goes to \(\infty\)), the net profit condition \(c>\lambda\mu\) is the utmost critical, where \(c\) is the premium rate, \(\lambda\) is the mean of claims frequency per unit time and \(\mu\) is the mean of the claim size.\\
+
+Furthermore, if we implement the constant investment income as a feature to the classic Cramer-Lundberg model, we see that the same strategy does not work to solve for \(\phi(u)\) because Laplace Transformation is not applicable on \eqref{CL-eq-with-r}. Instead, we convert \eqref{CL-eq-with-r} to an ODE and solve it. We can see that the net profit condition is no longer needed to guarantee \(\phi(u)\) to be 1 as \(u\) tends to \(\infty\). It is because as long as the initial capital is large enough, the investment income can compensate the premium shortfall.\\
+
+Large initial capital can also interpret as the single premium receivable at \(t=0\). Therefore, using appropriate assumptions on the claims distribution and the interest rate \(r\), the Cramer-Lundberg could be used as a reference to price single premium products.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{References}
+\begingroup
+\renewcommand{\section}[2]{}%
+\begin{thebibliography}{}
+%%%%
+\bibitem{ref01} S Asmussen, H Albrecher. (2010). \textit{Ruin Probabilities}. Sweden: World Scientific Publishing Co. Pte. Ltd.
+%%%%
+\bibitem{ref02} Andersen, E. Sparre. \textit{On the collective theory of risk in case of contagion between claims.} Transactions of the XVth International Congress of Actuaries. Vol. 2. No. 6. 1957.
+%%%%
+\bibitem{ref03} \textit{R, version 3.5.2}. (2018-12-20).
+%%%%
+\bibitem{ref04} \textit{Wolfram Mathematica 10 (Student Edition), version 10.4.1.0}. (2016-04-11).
+%%%%
+\end{thebibliography}
+\endgroup
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newpage
+\section{Appendix}
+Written by Professor Charles Tier, equation \eqref{survival-f-exp-with-r} can be found by Mathematica\cite{ref04}:\\
+\vskip 0.5cm
+\begin{flushleft}
+\includegraphics[scale=0.65]{mathematica_capscreen.pdf}
+\end{flushleft}
+
+\newpage
+The R code below simulates exponential claims without investment.
+\begin{lstlisting}
+# Theta loop
+for (th in seq(0,0.5,0.1)){
+
+  graph = c();
+  
+  theta   <- round(th,1);      
+  # loading such that Net Profit Condition holds
+  lab     <- 1;                
+  # lambda of the poisson distribution
+  EX      <- 1;                
+  # expected value of claims distribution
+  alpha   <- 1/EX;
+  # parameter of the exponential distribution
+  r       <- 0;                
+  # constant investment income
+  n       <- 400+4000*(1-round(th/(th+0.000001),0));
+  # each simulation generates 400 claims except 4400 claims for u = 0
+  nSim    <- 10000;            
+  # number of simulations, each simulation is a U process
+  c.      <- (1+theta)*lab*EX  
+  # premium rate with loading
+  
+  matrix = c();
+  
+  # seed loop
+  for (seed in seq(1,10,1)){
+    
+    set.seed(seed)
+    tobeplot = c();
+    case = 1;
+    
+    # capital loop
+    for (y in seq(0, 20, 0.5)){
+      u <- y
+      # run different initial capital u
+      N <- rep(Inf, nSim)
+      
+      # simulation loop
+      for (k in 1:nSim){
+        Wi <- rexp(n)/lab; 
+        # /lab is for standardize
+        # Wi is a vector in R^n
+        
+        Xi <- rexp(n, rate=1/EX)
+        # Xi storing the generated n claims
+        ## severity has mean EX=1
+        
+        Ui <- rep(0,n)
+        Ui[1] = u;
+        for (j in c(2:n)){
+          Ui[j] = Ui[j-1]*(1+r) + Wi[j-1]*c. - Xi[j-1];
+        }
+        # Ui storing capital amount depsite whether it hits zero at some claim time Ti
+        
+        ruin <- !all(Ui>=0)
+        # ruin = 0 or 1 depends on whether ruin occured in the process
+        
+        if (ruin) N[k] <- min(which(Ui<0))
+        # N is a vector storing the index of the first negative Ui in each simulation
+        # Value is "inf" if no negative Ui
+      }
+      
+      N <- N[N<Inf]; 
+      # A vector which only stores the index of ruin time of each simulation 
+      
+      # show progress during the run
+      print("-")
+      print("-")
+      print("-")
+      print("-")
+      print(paste("Theta =",th))
+      print(paste("Seed =",seed))
+      print(paste("u =",u))
+      print(paste("Ruined =",length(N),"/",nSim))
+      print("-----------------")
+      
+      tobeplot[case] = (nSim - length(N))/nSim
+      case = case + 1
+    }
+    matrix = cbind(matrix,tobeplot);
+  }
+  
+  average = c();
+  for (j in seq(0, 41, 1)){
+  average[j] = mean(matrix[j,]);
+  }
+  
+  graph = cbind(graph,average);
+  
+  
+  ##############################################
+  ##             Plots comparison             ##
+  ##############################################
+  
+  # Export plots as pdf
+  pdf(paste0("C:/Users/Woodrow/Documents/MATH 594/R Codes/No Investment/exponential/plots_theta_",gsub("\\.","",toString(theta)),".pdf"))
+  
+  # Simulation plot
+  plot(seq(0, 20, 0.5),graph[,1],
+       xlim=c(0,22),ylim=c(0,1.25),col="blue",
+       xlab="Initial Capital (u)",ylab="Pr(Survive)",
+       main=paste0("Claim Distribution: Exponential (Theta = ",theta,")"),
+       type="p",pch=19)
+  # Theoretical plot
+  points(seq(0, 20, 0.5),1-lab/(alpha*c.)*exp(-seq(0, 20, 0.5)*(alpha-lab/c.)),col="red",type="l",lwd=2)
+  legend(0, 1.15, c("Simulation"), col=c("blue"), pch=19);
+  legend(0, 1.25, c("Theoretical"), col=c("red"), lwd=2, lty=c(1));
+  
+  dev.off()
+  
+  #rm(list=ls())
+}
+\end{lstlisting}
+
+\newpage
+The R code below simulates hyper-exponential claims without investment.
+\begin{lstlisting}
+# Theta loop
+for (th in seq(0,0.5,0.1)){
+  
+  graph = c();
+  
+  theta   <- round(th,1)+ifelse(th==0,0.001,0);      
+  # loading such that Net Profit Condition holds
+  lab     <- 1;                
+  # lambda of the poisson distribution
+  p.       <- 0.2;
+  alpha   <- 0.7;
+  bet   <- 1.12;
+  # parameter of the hyper-exponential distribution such that EX=1
+  EX      <- p./alpha+(1-p.)/bet;
+  # expected value of claims distribution EX=1
+  r       <- 0;
+  # constant investment income
+  n       <- 400+4000*(1-round(th/(th+0.000001),0));
+  # each simulation generates 400 claims except 4400 claims for u = 0
+  nSim    <- 10000;            
+  # number of simulations, each simulation is a U process
+  c.      <- (1+theta)*lab*EX  
+  # premium rate with loading
+  
+  matrix = c();
+  
+  # seed loop
+  for (seed in seq(1,10,1)){
+    
+    set.seed(seed)
+    tobeplot = c();
+    case = 1;
+    
+    # capital loop
+    for (y in seq(0, 20, 0.5)){
+      u <- y
+      # run different initial capital u
+      N <- rep(Inf, nSim)
+      
+      # simulation loop
+      for (k in 1:nSim){
+        Wi <- rexp(n)/lab; 
+        # /lab is for standardize
+        # Wi is a vector in R^n
+        bern = rbinom(n,1,p.);
+        Xi <- bern*rexp(n,rate=alpha)+(1-bern)*rexp(n,rate=bet);
+        # Xi storing the generated n claims
+        ## severity has mean EX=1
+        Ui <- rep(0,n)
+        Ui[1] = u;
+        for (j in c(2:n)){
+          Ui[j] = Ui[j-1]*(1+r) + Wi[j-1]*c. - Xi[j-1];
+        }
+        # Ui storing capital amount depsite whether it hits zero at some claim time Ti
+        
+        ruin <- !all(Ui>=0)
+        # ruin = 0 or 1 depends on whether ruin occured in the process
+        
+        if (ruin) N[k] <- min(which(Ui<0))
+        # N is a vector storing the index of the first negative Ui in each simulation
+        # Value is "inf" if no negative Ui
+      }
+      
+      N <- N[N<Inf]; 
+      # A vector which only stores the index of ruin time of each simulation 
+      
+      # show progress during the run
+      print("-")
+      print("-")
+      print("-")
+      print("-")
+      print(paste("Theta =",th))
+      print(paste("Seed =",seed))
+      print(paste("u =",u))
+      print(paste("Ruined =",length(N),"/",nSim))
+      print("-----------------")
+      
+      tobeplot[case] = (nSim - length(N))/nSim
+      case = case + 1
+    }
+    matrix = cbind(matrix,tobeplot);
+  }
+  
+  average = c();
+  for (j in seq(0, 41, 1)){
+    average[j] = mean(matrix[j,]);
+  }
+  
+  graph = cbind(graph,average);
+  
+  
+  ##############################################
+  ##             Plots comparison             ##
+  ##############################################
+  
+  # Export plots as pdf
+  pdf(paste0("C:/Users/Woodrow/Documents/MATH 594/R Codes/No Investment/hyperexpo/plots_theta_",gsub("\\.","",toString(theta)),".pdf"))
+  
+  # Simulation plot
+  plot(seq(0, 20, 0.5),graph[,1],
+       xlim=c(0,22),ylim=c(0,1.25),col="blue",
+       xlab="Initial Capital (u)",ylab="Pr(Survive)",
+       main=paste0("Claim Distribution: Hyper-exponential (Theta = ",round(theta,1),")"),
+       type="p",pch=19)
+  # Theoretical plot
+  tri = (alpha+bet-lab/c.)^2-4*alpha*bet*(1-lab*EX/c.);
+  r1 = (-(alpha+bet-lab/c.)+tri^0.5)/2;
+  r2 = (-(alpha+bet-lab/c.)-tri^0.5)/2;
+  A1 = 1;
+  A2 = (1-lab*EX/c.)*(r1+alpha)*(r1+bet)/(r1*(tri^0.5));
+  A3 = (1-lab*EX/c.)*(r2+alpha)*(r2+bet)/(-r2*(tri^0.5));
+  points(seq(0, 20, 0.5),A1+A2*exp(r1*seq(0, 20, 0.5))+A3*exp(r2*seq(0, 20, 0.5)),col="red",type="l",lwd=2)
+  legend(0, 1.15, c("Simulation"), col=c("blue"), pch=19);
+  legend(0, 1.25, c("Theoretical"), col=c("red"), lwd=2, lty=c(1));
+  
+  dev.off()
+  
+  #rm(list=ls())
+}
+\end{lstlisting}
+
+\newpage
+The R code below simulates Erlang claims without investment.
+\begin{lstlisting}
+# Theta loop
+for (th in seq(0,0.5,0.1)){
+  
+  graph = c();
+  
+  theta   <- round(th,1)+ifelse(th==0,0.001,0);
+  # loading such that Net Profit Condition holds, use 0.001 to approx 0 and show better plot
+  lab     <- 1;                
+  # lambda of the poisson distribution
+  EX      <- 1;                
+  # expected value of claims distribution
+  r       <- 0;                
+  # investment income
+  n       <- 400+4000*(1-round(th/(th+0.000001),0));
+  # each simulation generates 400 claims except 4400 claims for u = 0
+  nSim    <- 10000;
+  # number of simulations, each simulation is a U process
+  c.      <- (1+theta)*lab*EX  
+  # premium rate with loading
+  alpha   <- 2;                
+  # shape of gamma (k)
+  rate    <- alpha/EX;
+  # rate (beta)
+  
+  matrix = c();
+  
+  # seed loop
+  for (seed in seq(1,10,1)){
+      
+    set.seed(seed)
+    tobeplot = c();
+    case = 1;
+    
+    # capital loop
+    for (y in seq(0, 20, 0.5)){
+      u <- y                 
+      # run different initial capital
+      N <- rep(Inf, nSim)
+      
+      # simulation loop
+      for (k in 1:nSim){
+        Wi <- rexp(n)/lab; 
+        # /lab is for standardize
+        # Wi is a vector in R^n
+        
+        Xi <- rgamma(n, shape=alpha, scale=1/rate)
+        # Xi storing the generated n claims
+        ## severity has mean EX=1
+        
+        Ui <- rep(0,n)
+        Ui[1] = u;
+        for (j in c(2:n)){
+          Ui[j] = Ui[j-1]*(1+r) + Wi[j-1]*c. - Xi[j-1];
+        }
+        # Ui storing capital amount depsite whether it hits zero at some claim time Ti
+        
+        ruin <- !all(Ui>=0)
+        # ruin = 0 or 1 depends on whether ruin occured in the process
+        
+        if (ruin) N[k] <- min(which(Ui<0))
+        # N is a vector storing the index of the first negative Ui in each simulation
+        # Value is "inf" if no negative Ui
+      }
+      
+      N <- N[N<Inf]; 
+      # A vector which only stores the index of ruin time of each simulation 
+      
+      # show progress during the run
+      print("-")
+      print("-")
+      print("-")
+      print("-")
+      print(paste("Theta =",th))
+      print(paste("Seed =",seed))
+      print(paste("u =",u))
+      print(paste("Ruined =",length(N),"/",nSim))
+      print("-----------------")
+      
+      tobeplot[case] = (nSim - length(N))/nSim
+      case = case + 1
+    }
+    matrix = cbind(matrix,tobeplot);
+  }
+  
+  average = c();
+  for (j in seq(0, 41, 1)){
+    average[j] = mean(matrix[j,]);
+  }
+  
+  graph = cbind(graph,average);
+  
+  
+  #########################
+  ###  Plots comparison
+  #########################
+  
+  # Export plots as pdf
+  pdf(paste0("C:/Users/Woodrow/Documents/MATH 594/R Codes/No Investment/gamma/plots_theta_",gsub("\\.","",toString(theta)),".pdf"))
+  
+  # Simulation plot
+  plot(seq(0, 20, 0.5),graph[,1],
+       xlim=c(0,22),ylim=c(0,1.25),col="blue",
+       xlab="Initial Capital (u)",ylab="Pr(Survive)",
+       main=paste0("Claim Distribution: Gamma(alpha=2,rate=2) (Theta = ",round(theta,1),")"),
+       type="p",pch=19)
+  # Theoretical plot
+  delta = (2*rate-lab/c.)^2-4*rate*(rate-2*lab/c.)
+  r1 = (-(2*rate-lab/c.)+delta^0.5)/2
+  r2 = (-(2*rate-lab/c.)-delta^0.5)/2
+  A1 = 1
+  A2 = ((c.-2*lab/rate)*(r1+rate)^2)/(c.*r1*(r1-r2))
+  A3 = ((c.-2*lab/rate)*(r2+rate)^2)/(c.*r2*(r2-r1))
+  points(seq(0, 20, 0.5),A1+A2*exp(r1*seq(0, 20, 0.5))+A3*exp(r2*seq(0, 20, 0.5)),col="red",type="l",lwd=2)
+  legend(0, 1.15, c("Simulation"), col=c("blue"), pch=19);
+  legend(0, 1.25, c("Theoretical"), col=c("red"), lwd=2, lty=c(1));
+  
+  dev.off()
+  
+  #rm(list=ls())
+}
+\end{lstlisting}
+
+\newpage
+The R code below simulates exponential claims with investment.
+\begin{lstlisting}
+library(pracma)
+# Theta loop
+for (th in seq(-1,0.5,0.1)){
+
+  graph = c();
+  
+  theta   <- round(th,1);      
+  # loading such that Net Profit Condition holds
+  lab     <- 1;                
+  # lambda of the poisson distribution
+  EX      <- 1;                
+  # expected value of claims distribution
+  alpha   <- 1/EX;
+  # parameter of the exponential distribution
+  r       <- 0.05;                
+  # constant investment income
+  n       <- 400+4000*(1-round(th/(th+0.000001),0));
+  # each simulation generates 400 claims except 4400 claims for u = 0
+  nSim    <- 10000;
+  # number of simulations, each simulation is a U process
+  c.      <- (1+theta)*lab*EX  
+  # premium rate with loading
+  
+  matrix = c();
+  
+  # seed loop
+  for (seed in seq(1,10,1)){
+    
+    set.seed(seed)
+    tobeplot = c();
+    case = 1;
+    
+    # capital loop
+    for (y in seq(0, 20, 0.5)){
+      u <- y
+      # run different initial capital u
+      N <- rep(Inf, nSim)
+      
+      # simulation loop
+      for (k in 1:nSim){
+        Wi <- rexp(n)/lab; 
+        # /lab is for standardize
+        # Wi is a vector in R^n
+        
+        Xi <- rexp(n, rate=1/EX)
+        # Xi storing the generated n claims
+        ## severity has mean EX=1
+        
+        Ui <- rep(0,n)
+        Ui[1] = u;
+        for (j in c(2:n)){
+          Ui[j] = Ui[j-1]*(1+r) + Wi[j-1]*c. - Xi[j-1];
+        }
+        # Ui storing capital amount depsite whether it hits zero at some claim time Ti
+        
+        ruin <- !all(Ui>=0)
+        # ruin = 0 or 1 depends on whether ruin occured in the process
+        
+        if (ruin) N[k] <- min(which(Ui<0))
+        # N is a vector storing the index of the first negative Ui in each simulation
+        # Value is "inf" if no negative Ui
+      }
+      
+      N <- N[N<Inf]; 
+      # A vector which only stores the index of ruin time of each simulation 
+      
+      # show progress during the run
+      print("-")
+      print("-")
+      print("-")
+      print("-")
+      print(paste("Theta =",th))
+      print(paste("Seed =",seed))
+      print(paste("u =",u))
+      print(paste("Ruined =",length(N),"/",nSim))
+      print("-----------------")
+      
+      tobeplot[case] = (nSim - length(N))/nSim
+      case = case + 1
+    }
+    matrix = cbind(matrix,tobeplot);
+  }
+  
+  average = c();
+  for (j in seq(0, 41, 1)){
+  average[j] = mean(matrix[j,]);
+  }
+  
+  graph = cbind(graph,average);
+  
+  
+  ##############################################
+  ##             Plots comparison             ##
+  ##############################################
+  
+  # Export plots as pdf
+  pdf(paste0("C:/Users/Woodrow/Documents/MATH 594/R Codes/Investment/exponential/plots_theta_",gsub("\\.","",toString(theta)),".pdf"))
+  
+  # Simulation plot
+  plot(seq(0, 20, 0.5),graph[,1],
+       xlim=c(0,22),ylim=c(0,1.25),col="blue",
+       xlab="Initial Capital (u)",ylab="Pr(Survive)",
+       main=paste0("Claim Distribution: Exponential (Theta = ",theta,")"),
+       type="p",pch=19)
+  # Theoretical plot
+  A1 <- lab*exp(alpha*c./r);
+  A2 <- r*(alpha*c./r)^(lab/r);
+  G1 <- rep(0,length(seq(0, 20, 0.5)));
+  for (i in c(1:length(G1))){
+    G1[i] = incgam(alpha*c./r+alpha*seq(0, 20, 0.5)[i],lab/r);
+  }
+  points(seq(0, 20, 0.5),1-(A1*G1)/(A2+A1*incgam(alpha*c./r,lab/r)),col="red",type="l",lwd=2)
+  legend(0, 1.15, c("Simulation"), col=c("blue"), pch=19);
+  legend(0, 1.25, c("Theoretical"), col=c("red"), lwd=2, lty=c(1));
+  
+  dev.off()
+  
+  #rm(list=ls())
+}
+\end{lstlisting}
+
+\newpage
+The R code below simulates Erlang claims with investment.
+\begin{lstlisting}
+library(pracma)
+# Theta loop
+for (th in seq(-1,0.5,0.1)){
+  
+  graph = c();
+  
+  theta   <- round(th,1)+ifelse(th==0,0.001,0);
+  # loading such that Net Profit Condition holds
+  lab     <- 1;                
+  # lambda of the poisson distribution
+  EX      <- 1;                
+  # expected value of claims distribution
+  r       <- 0.05;                
+  # investment income
+  n       <- 400+4000*(1-round(th/(th+0.000001),0));
+  # each simulation generates 400 claims except 4400 claims for u = 0
+  nSim    <- 10000;            
+  # number of simulations, each simulation is a U process
+  c.      <- (1+theta)*lab*EX  
+  # premium rate with loading
+  alpha   <- 2;                
+  # shape of gamma (k)
+  rate    <- alpha/EX;         
+  # rate (beta)
+  
+  matrix = c();
+  
+  # seed loop
+  for (seed in seq(1,10,1)){
+      
+    set.seed(seed)
+    tobeplot = c();
+    case = 1;
+    
+    # capital loop
+    for (y in seq(0, 20, 0.5)){
+      u <- y                 
+      # run different initial capital
+      N <- rep(Inf, nSim)
+      
+      # simulation loop
+      for (k in 1:nSim){
+        Wi <- rexp(n)/lab; 
+        # /lab is for standardize
+        # Wi is a vector in R^n
+        
+        Xi <- rgamma(n, shape=alpha, scale=1/rate)
+        # Xi storing the generated n claims
+        ## severity has mean EX=1
+        
+        Ui <- rep(0,n)
+        Ui[1] = u;
+        for (j in c(2:n)){
+          Ui[j] = Ui[j-1]*(1+r) + Wi[j-1]*c. - Xi[j-1];
+        }
+        # Ui storing capital amount depsite whether it hits zero at some claim time Ti
+        
+        ruin <- !all(Ui>=0)
+        # ruin = 0 or 1 depends on whether ruin occured in the process
+        
+        if (ruin) N[k] <- min(which(Ui<0))
+        # N is a vector storing the index of the first negative Ui in each simulation
+        # Value is "inf" if no negative Ui
+      }
+      
+      N <- N[N<Inf]; 
+      # A vector which only stores the index of ruin time of each simulation 
+      
+      # show progress during the run
+      print("-")
+      print("-")
+      print("-")
+      print("-")
+      print(paste("Theta =",th))
+      print(paste("Seed =",seed))
+      print(paste("u =",u))
+      print(paste("Ruined =",length(N),"/",nSim))
+      print("-----------------")
+      
+      tobeplot[case] = (nSim - length(N))/nSim
+      case = case + 1
+    }
+    matrix = cbind(matrix,tobeplot);
+  }
+  
+  average = c();
+  for (j in seq(0, 41, 1)){
+    average[j] = mean(matrix[j,]);
+  }
+  
+  graph = cbind(graph,average);
+  
+  
+  ##########################
+  ###  Plots comparison
+  ##########################
+  
+  # Export plots as pdf
+  pdf(paste0("C:/Users/Woodrow/Documents/MATH 594/R Codes/Investment/gamma/plots_theta_",gsub("\\.","",toString(theta)),".pdf"))
+  
+  # Simulation plot
+  plot(seq(0, 20, 0.5),graph[,1],
+       xlim=c(0,22),ylim=c(0,1.25),col="blue",
+       xlab="Initial Capital (u)",ylab="Pr(Survive)",
+       main=paste0("Claim Distribution: Gamma(alpha=2,rate=2) (Theta = ",round(theta,1),")"),
+       type="p",pch=19)
+  legend(0, 1.15, c("Simulation"), col=c("blue"), pch=19);
+  
+  dev.off()
+  
+  #rm(list=ls())
+}
+\end{lstlisting}
+
+\end{document}
