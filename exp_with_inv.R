@@ -94,7 +94,7 @@ for (th in seq(-1,0.5,0.1)){
   ##############################################
   
   # Export plots as pdf
-  pdf(paste0("C:/Users/Woodrow/Documents/MATH 594/R Codes/Investment/exponential/plots_theta_",gsub("\\.","",toString(theta)),".pdf"))
+  pdf(paste0("/Investment/exponential/plots_theta_",gsub("\\.","",toString(theta)),".pdf"))
   
   # Simulation plot
   plot(seq(0, 20, 0.5),graph[,1],
