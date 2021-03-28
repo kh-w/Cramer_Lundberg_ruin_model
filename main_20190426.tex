@@ -1,0 +1,465 @@
+\documentclass[12pt]{article}
+\usepackage{times}        % Cannot show "Cramér" properly
+%\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{listings}
+\usepackage{setspace}
+\usepackage{hyperref}
+\usepackage{amsmath,amssymb,amsthm,amsfonts}
+\usepackage{verbatim}
+\usepackage{systeme}
+\usepackage{tocloft}
+\usepackage{pdfpages}
+
+\newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+
+%page layout -------------------------------------------------
+%11pt
+%\hoffset=-0.775in
+%\voffset=-0.925in
+%\setlength{\textheight}{9.0in}
+%\setlength{\textwidth}{6.5in}
+%\setlength{\parindent}{3em}
+% 12pt
+\hoffset=-0.575in \voffset=-0.9in \setlength{\textheight}{9.0in}
+\setlength{\textwidth}{6.5in} \setlength{\parindent}{3em}
+
+\hypersetup{
+  colorlinks=true,
+  citecolor=Red,
+  linkcolor=Black}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+%\renewcommand{\baselinestretch}{1.2}
+\begin{center}
+{Master of Applied Mathematics Program}\\
+{Professional Master's Project Report}\\
+{Department of Applied Mathematics}\\
+{Illinois Institute of Technology}\\
+\vspace{4.5 cm}
+{\Large \bf Cramer-Lundberg Model}\\
+\vspace{4.5 cm} 
+{\Large Submitted by}\\
+\vspace{0.5 cm}
+{\Large Kin Hang Wong}\\
+\vspace{7cm} 
+\centerline{\emph{In
+partial fulfillment of the requirements of Master's candidates in}} 
+\centerline{\emph{Master of Applied 
+Mathematics Program}}
+\vspace{.1in}
+
+\vspace{.1in}
+\centerline{VERSION 20190426}
+\end{center}
+\thispagestyle{empty}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\begin{abstract}
+
+This project explained the mathematical structure of the Cramer-Lundberg Model which is widely used by insurance industry. \\
+
+The simplest form of the model only consists initial capital, constant premium rate and an assumed claims distribution. It is not enough for practical use for business. Therefore, throughout the derivation of the model, one should seek possibilities to implement additional features.\\
+
+One of the most intuitive and important feature is to implement investment income from bonds. Assuming the investment return is constant throughout the time horizon, i.e. no interest rate risk and no reinvestment risk,  the model behaves differently compare with no investments. \textcolor{red}{(to be continued).....}\\
+
+This project will also perform simulation using R to better understand the model, \textcolor{red}{(to be continued).....}\\
+
+\end{abstract}
+
+\newpage
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newpage
+\section{Introduction}
+
+\hspace{12.2mm}Insurers sell insurance contracts to policyholders to protect them from unexpected financial crises. For example a lump sum for medical treatment on critical illnesses, a lump sum death benefit to protect the beneficiaries of the diseased or a series of payment to the policyholder to support his/her retirement. Since the premium required per contract is relatively small compare to the benefit amount, if the product is under-priced, insurer will be at risk due to insufficient fund.\\
+
+Existing capital plus new premiums collected by insurer are responsible for the claims, expense, profit and investment. Therefore, it is utmost important to make sure the cash inflows(e.g. premium, investment income) for the insurer is sufficient to cover cash outflows(e.g. claims, expenses) to keep the business running and run good. For simplicity, this project will focus on the premium and claims. After the model structure being illustrated clearly, we will implement constant investment return and observe how the model behaves.\\
+
+The Cramer-Lundberg model \cite{ref01} has been used in insurance pricing for a long period of time. It was first introduced in 1903 by the Swedish actuary Filip Lundberg. The model measures the probability of ruin by assessing the surplus at all time in terms of initial capital, constant premium rate and aggregate claim. The aggregate claim is a function of two independent random variables: number of claims and claim size. The number of claims follows a Poisson distribution; there is no restrictions on the claim size distribution.\\
+
+As expected, the probability of ruin depends on the initial capital as well as the premium rate. The model also provides information on the sensitivity of ruin probability by altering the premium rate.\\
+
+After the implementation of constant investment, \textcolor{red}{(to be continued).....}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Cramer-Lundberg Model: No investment income}
+The Cramer-Lundberg model involves the surplus $C_t$ at time \(t\) which is given by\cite{ref01}:
+\begin{equation}\label{CL-model}
+    C_t = u+ct-\sum_{i=1}^{N_t}X_i
+\end{equation}
+Here \(u\) is the initial capital, i.e.  \(C_0=u\), \(c\) is the constant premium rate, the sequence of claims \(\{X_1, X_2, ..., X_i\}\) are independent and identically distributed(i.i.d) random variables, and \(N_t\) is the number of claims occurred by time \(t\). The uncertainty comes from both \(X_i\) and \(N_t\), where \(N_t\) is assumed to follow a Poisson Process with rate \(\lambda\) and \(X_i\) has density function \(f(x)\) with \(E(X_i)=\mu\). In addition, we can denote the \(i^{th}\) claim occurred at \(T_i\) so that \(T_i-T_{i-1}\) follows exponential distribution with mean \(1/\lambda\).\\
+ \\
+Given this model, insurance companies are interested in some basic information:
+\begin{itemize}
+  \item The \textbf{Probability of Ultimate Ruin} given initial capital \(u\) i.e.
+    \begin{equation}\label{Pr-Ul-ruin}
+        \psi(u) = Pr\Big(\inf_{s>0}\{C_s\}<0|C_0=u\Big)
+    \end{equation}
+    where the corresponding survival function is,
+    \begin{equation}\label{survival-f}
+        \phi(u) = 1-\psi(u)
+    \end{equation}
+  \item \textbf{Net Profit Condition}, \(c>\lambda\mu\), which is a necessary condition to guarantee that the surplus process has zero 
+  probability of ultimate ruin given infinite amount of initial capital, i.e.
+    \begin{equation}\label{net-profit1}
+        \lim_{u\to\infty}\psi(u)=\lim_{u\to\infty}Pr\Big(\inf_{s>0}\{C_s\}\leq0|C_0=u\Big)=0
+    \end{equation}
+    Or equivalently, the certainty of survival given infinite amount of initial capital,
+    \begin{equation}\label{net-profit}
+        \lim_{u\to\infty}\phi(u)=1
+    \end{equation}
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Net Profit Condition}
+The \textit{Net Profit Condition}, i.e. 
+    \begin{equation}\label{NPC}
+        c > \lambda\mu
+    \end{equation}
+is the requirement such that the probability of ultimate ruin, \(\psi(u)\), is zero 
+given infinite amount of initial capital.
+%    \[\lim_{u\to\infty}\psi(u)=\lim_{u\to\infty}Pr\Big(\inf_{s>0}\{C_s\}\leq0|C_0=u%\Big)=0\]
+    \begin{proof} 
+    Let \(Y_i=c(T_{i}-T_{i-1})-X_i\) be the net cash inflow between claim times, i.e. total premium received between \(T_i\) and \(T_{i-1}\) minus the amount of the \(i^{th}\) claim occured at time \(T_{i}\). Then, we require every \(Y_i\) to be positive to avoid ruin at all time, i.e.
+    \[\lim_{u\to\infty}Pr\Big(\inf_{s>0}\{C_s\}\leq0|C_0=u\Big)=0 \Longleftrightarrow \{Y_i:Y_i\leq0\}=\emptyset\]
+    Equivalently,
+    \[c(T_{i}-T_{i-1})-X_i>0\]
+    Since \(N_t\) is a Poisson process with mean \(\lambda\), the time between each claim is exponential with mean \(1/\lambda\). By taking expectation on both sides of the inequality, we obtained:
+    \begin{align*}
+    {cE(T_{i}-T_{i-1})-E(X_i)}&>{0}\\
+    {c/\lambda-\mu}&>{0}\\
+    {c}&>{\lambda\mu}
+    \end{align*}
+    \end{proof}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{The probability of ultimate ruin}
+
+\subsubsection{General Claims Distribution}
+Instead of looking at the ruin probability \(\psi(u)\), it is more convenient to look at the 
+ulitmate survival probability \(\phi(u)=1-\psi(u)\).
+We now derive an equation for $\phi(u)$ using the Law of Total Probability.
+Consider two events: One claim occurred within time interval \(h\), i.e. \textit{Pr(One claim occurred within h) }\(=1-e^{-\lambda h}\), or not, i.e. \textit{Pr(No claims occurred within h) }\(=e^{-\lambda h}\), we obtained the following equation. 
+\begin{equation*}
+    \phi(u)=e^{-\lambda h}\phi(u+ch)+(1-e^{-\lambda h})\int_{0}^{\infty}\phi(u+ch-x)f(x)dx
+\end{equation*}
+where \(f(x)\) be the probability density function of 
+the claims sizes \(X_i\).  We perform some algebra to obtain
+\begin{equation*}
+    \frac{\phi(u)-\phi(u+ch)}{ch}=\frac{e^{-\lambda h}-1}{ch}\phi(u+ch)+\frac{1-e^{-\lambda h}}{ch}\int_{0}^{\infty}\phi(u+ch-x)f(x)dx
+\end{equation*}
+and taking $\displaystyle\lim_{h\to 0}$ on both sides, we obtain the \textbf{backward equation}, i.e.
+\begin{equation}
+    -\phi'(u)=\frac{-\lambda}{c}\phi(u)+\frac{\lambda}{c}\int_{0}^{\infty}\phi(u-x)f(x)dx
+\end{equation}
+Since \(\phi(x)=0\) for \(x<0\) (immediate ruin), we have the \textbf{Cramer-Lundberg equation}, i.e.
+\begin{equation}\label{CL-eq}
+    c\phi'(u)=\lambda\Big[\phi(u)-\int_{0}^{u}\phi(u-x)f(x)dx\Big]\\
+\end{equation}
+This is an integro-differential equation.  We have an auxiliary condition
+that survival is sure if the initial reserve is infinite, i.e. 
+\(\phi(\infty)=1\).   It will be useful to 
+have the condition at $u=0$,  \(\phi(0)\). \\
+We find \(\phi(0)\) as follows:
+\begin{align*}
+    c\int_{0}^{u}\phi'(x)dx &=\int_{0}^{u}\lambda\phi(x)dx-\int_{0}^{u}\int_{0}^{x}\lambda\phi(x-y)f(y)dydx\\
+    \frac{c}{\lambda}[\phi(u)-\phi(0)]&=\int_{0}^{u}\phi(x)dx-\int_{0}^{u}\int_{0}^{x}\phi(x-y)dF(y)dx\\
+    &=\int_{0}^{u}\phi(x)dx-\int_{0}^{u}\int_{0}^{x}\phi(x-y)dF(y)dx\\
+    &=\int_{0}^{u}\phi(x)dx-\int_{0}^{u}\int_{0}^{u-x}d[\phi(x)F(y)]dx\\
+    &=\int_{0}^{u}\phi(x)[1-F(u-x)]dx\\
+    &=\int_{0}^{u}\phi(u-x)[1-F(x)]dx\\
+\end{align*}
+where $F(x)$ is the probability distribution function of the claims.
+By taking $\displaystyle\lim_{u\to \infty}$ on both sides, since $\displaystyle\lim_{u\to \infty}\phi(u)=\lim_{u\to \infty}(1-\psi(u))=1$ and by net profit condition \(c>\lambda\mu\), we find \\
+\begin{align*}
+    \frac{c}{\lambda}[1-\phi(0)]&=\int_{0}^{\infty}[1-F(x)]dx\\
+    \frac{c}{\lambda}[1-\phi(0)]&=E(Claim Size)=\mu\\
+    \phi(0)&=1-\frac{\lambda\mu}{c}>0
+\end{align*}
+So that even if we start with a very small surplus, the ultimate probability
+of survival is not zero.
+We then obtained the problem,
+\begin{eqnarray}
+\displaystyle c\phi'(u)=\lambda\Big[\phi(u)-\int_{0}^{u}\phi(u-x)f(x)dx\Big]
+\label{c-l} \\
+\displaystyle \phi(0)=1-\frac{\lambda\mu}{c}, \;\; \phi(\infty)=1
+\label{condition}
+\end{eqnarray} 
+
+We can solve \eqref{c-l} with \eqref{condition} using Laplace transforms.  We
+define the Laplace transforms as
+ \(\mathcal{L}\{\phi(u)\}=\Phi(s)\) and \(\mathcal{L}\{f(u)\}=\Omega(s)\)
+ and then apply the Laplace transform to \eqref{c-l} with \eqref{condition}.
+We solve for $\Phi(s)$ to obtain
+\begin{equation}\label{Lap-Tr}
+    \Phi(s)=\frac{c(1-\frac{\lambda\mu}{c})}{cs+\lambda\Omega(s)-\lambda}=\frac{c-\lambda\mu}{cs+\lambda\Omega(s)-\lambda}
+\end{equation}
+\\
+Here \(\Omega(s)\) depends on the claims distribution, then using inverse Laplace Transformation on \(\Phi(s)\), we could solve for \(\phi(u)\) explicitly.
+
+%%%%%%%%%%%%%%%
+
+\subsubsection{Exponential Claims Distribution}
+
+If the claims amount follows the exponential distribution, i.e. 
+\[X_i\sim exp(\alpha)\]
+then we have,
+\begin{align*}
+ F(x)&=1-e^{-\alpha x},
+ \hspace{0.5cm}
+ f(x)=\alpha e^{-\alpha x},
+ \hspace{0.5cm}
+ \mu=\frac{1}{\alpha}\\
+ \Omega(s)&=\mathcal{L}\{\alpha e^{-\alpha x}\}=\frac{\alpha}{\alpha+s}
+\end{align*}
+Equation \eqref{Lap-Tr} becomes,
+\begin{align*}
+\Phi(s)&=\frac{c-\frac{\lambda}{\alpha}}{cs+\lambda(\frac{\alpha}{\alpha+s})-\lambda}=\frac{(c\alpha-\lambda)(s+\alpha)}{s\alpha(sc+c\alpha-\lambda)}=\frac{1}{s}-\Big(\frac{\lambda}{c\alpha}\Big)\frac{1}{s+\frac{c\alpha-\lambda}{c}}
+\end{align*}
+then by inverse Laplace transformation,
+\begin{eqnarray}
+\phi(u)=1-\frac{\lambda}{c\alpha}e^{-(\alpha-\frac{\lambda}{c})u}\label{hahaha}\label{exp_noinv_surv}\\
+\psi(u)=\frac{\lambda}{c\alpha}e^{-(\alpha-\frac{\lambda}{c})u}\label{exp_noinv_ruin}
+\end{eqnarray}
+
+This theoretical survival function can be verified by simulation. For each initial capital amount \(u_i\), \(0\leq u_i\leq 20\) with increment \(0.5\), we generate 400 claims amount \textit{(4000 for \(u=0\) for better illustration)} for each of the 10000 simulations and see how many ruined cases among the 10000 simulations, this fraction is an approximated value of \(\phi(u_i)\). Plot the 41 points \((u_i,\phi(u_i))\), the survival function can be estimated. The survival probability depends on the premium loading \(\theta\), i.e. \(c=(1+\theta)\lambda\mu\). If \(\theta\) is positive, net profit condition is met, otherwise net profit condition is not met. Graphs below compared the theoretical survival function and the simulated survival function for \(\theta\in\{0.5,0.4,0.3,0.2,0.1,0\}\). For cases that the net profit condition is not satisfied, i.e. \(\phi(u)=0\) for all u. The simulations failed to illustrate this nicely because finite amount of claims cannot mimic infinite time very well.
+
+\begin{flushleft}
+\includegraphics[scale=0.42]{expoplots/plots_theta_05.pdf}
+\includegraphics[scale=0.42]{expoplots/plots_theta_04.pdf}\\
+\includegraphics[scale=0.42]{expoplots/plots_theta_03.pdf}
+\includegraphics[scale=0.42]{expoplots/plots_theta_02.pdf}\\
+\includegraphics[scale=0.42]{expoplots/plots_theta_01.pdf}
+\includegraphics[scale=0.42]{expoplots/plots_theta_0.pdf}\\
+\end{flushleft}
+
+%%%%%%%%%%%%%%%
+
+\subsubsection{Hyper-exponential Claims Distribution}
+A hyper-exponential distribution is a mixture of n exponential distributions. If the claims distribution follows the hyper-exponential distribution, for simplicity we let \(n=2\) and \(\beta>\alpha\), i.e. 
+\[X_i\sim hyperexp \begin{pmatrix}{p,1-p}\\{\alpha,\beta}\end{pmatrix}\]
+then we have,
+\begin{align*}
+    F(x)&=1-pe^{-\alpha x}-(1-p)e^{-\beta x},
+    \hspace{0.5cm}
+    f(x)=p\alpha e^{-\alpha x}+(1-p)\beta e^{-\beta x}\\
+    \mu&=\frac{p}{\alpha}+\frac{1-p}{\beta}\\
+    \Omega(s)&=\mathcal{L}\{f(x)\}=\frac{p\alpha}{\alpha+s}+\frac{(1-p)\beta}{\beta+s}
+\end{align*}
+equation \eqref{Lap-Tr} becomes,
+\begin{align*}
+    \Phi(s)&=\frac{c-\lambda\mu}{cs+\lambda\big(\frac{p\alpha}{\alpha+s}+\frac{(1-p)\beta}{\beta+s}\big)-\lambda}=\frac{\big(1-\frac{\lambda\mu}{c}\big)(\alpha+s)(\beta+s)}{s\big[s^2+\big(\alpha+\beta-\frac{\lambda}{c}\big)s+\alpha\beta\big(1-\frac{\lambda\mu}{c}\big)\big]}
+\end{align*}
+by looking at $\displaystyle D(s)= s^2+\big(\alpha+\beta-\frac{\lambda}{c}\big)s+\alpha\beta\big(1-\frac{\lambda\mu}{c}\big)$, 
+\begin{align*}
+    \Delta&=\big(\alpha+\beta-\frac{\lambda}{c}\big)^2-4\alpha\beta\big(1-\frac{\lambda\mu}{c}\big)=\big(\beta-\alpha-\frac{\lambda}{c}\big)^2+\frac{4\lambda p(\beta-\alpha)}{c}>0.
+\end{align*}
+This implies we could perform partial fraction on \(\Phi(s)\) and get,
+\begin{align*}
+    \Phi(s)&=\frac{A}{s}+\frac{B}{s-r_1}+\frac{C}{s-r_2}\\
+    \phi(u)&=A+Be^{r_1u}+Ce^{r_2u}\\
+    \psi(u)&=1-A-Be^{r_1u}-Ce^{r_2u}
+\end{align*}
+where \(r_1\) and \(r_2\) are distinct real roots of \(D(s)=0\).\\
+Now we have to find \(r_1, r_2, A, B\) and \(C\) to complete \(\psi(u)\). From the partial fraction,
+\begin{align*}
+    \big(1-\frac{\lambda\mu}{c}\big)(\alpha+s)(\beta+s)&=A(s-r_1)(s-r_2)+Bs(s-r_2)+Cs(s-r_1)\\
+    s=0 \implies A&=1\\
+    s=r_1 \implies B&=\frac{\big(1-\frac{\lambda\mu}{c}\big)(r_1+\alpha)(r_1+\beta)}{r_1(r_1-r_2)}\\
+    s=r_2 \implies C&=\frac{\big(1-\frac{\lambda\mu}{c}\big)(r_2+\alpha)(r_2+\beta)}{r_2(r_2-r_1)}\\
+    (r_1,r_2)&=\bigg(\frac{-\big(\alpha+\beta-\frac{\lambda}{c}\big)+\sqrt{\Delta}}{2},\frac{-\big(\alpha+\beta-\frac{\lambda}{c}\big)-\sqrt{\Delta}}{2}\bigg)\\
+    \Delta &= \big(\alpha+\beta-\frac{\lambda}{c}\big)^2-4\alpha\beta\big(1-\frac{\lambda\mu}{c}\big)
+\end{align*}
+By product of roots and net profit condition, i.e.  \(1-\frac{\lambda\mu}{c}>0\), we have
+\begin{align*}
+    r_1&=\frac{-\big(\alpha+\beta-\frac{\lambda}{c}\big)+\sqrt{\big(\alpha+\beta-\frac{\lambda}{c}\big)^2-4\alpha\beta\big(1-\frac{\lambda\mu}{c}\big)}}{2}<0\\
+    r_1 r_2&=\alpha\beta\big(1-\frac{\lambda\mu}{c}\big)>0\\ 
+    r_2&<0
+\end{align*}
+After all, \(\phi(u)\) and \(\psi(u)\) could be found by gathering all information below:
+\begin{align*}
+    \phi(u)&=1-\Bigg[\frac{\big(1-\frac{\lambda\mu}{c}\big)(r_1+\alpha)(r_1+\beta)}{-r_1\sqrt{\Delta}}\Bigg]e^{r_1u}-\Bigg[\frac{\big(1-\frac{\lambda\mu}{c}\big)(r_2+\alpha)(r_2+\beta)}{r_2\sqrt{\Delta}}\Bigg]e^{r_2u}\numberthis\label{hyperexp_surv}\\
+    \psi(u)&=1-\phi(u)\\
+    \mu&=\frac{p}{\alpha}+\frac{1-p}{\beta},
+    \hspace{0.5cm}
+    \Delta = \big(\alpha+\beta-\frac{\lambda}{c}\big)^2-4\alpha\beta\big(1-\frac{\lambda\mu}{c}\big)\\
+    r_1&=\frac{-\big(\alpha+\beta-\frac{\lambda}{c}\big)+\sqrt{\Delta}}{2},
+    \hspace{0.5cm}
+    r_2=\frac{-\big(\alpha+\beta-\frac{\lambda}{c}\big)-\sqrt{\Delta}}{2}
+\end{align*}
+By putting \(p=1\), hyper-exponential distribution will be reduced to exponential distribution, i.e.
+\begin{align*}
+    \mu&=\frac{1}{\alpha},
+    \hspace{0.5cm}
+    \Delta=\big(\alpha-\frac{\lambda}{c}\big)^2\\
+    r_1&=0,
+    \hspace{0.5cm}
+    r_2=-\alpha+\frac{\lambda}{c}
+\end{align*}
+Therefore,
+\begin{align}
+    \phi(u)&=1-\frac{\lambda}{c\alpha}\exp^{-(\alpha-\frac{\lambda}{c})u}
+    \label{hyper-exp-surv}\\
+    \psi(u)&=\frac{\lambda}{c\alpha}\exp^{-(\alpha-\frac{\lambda}{c})u}
+    \label{hyper-exp-ruin}
+\end{align}
+which agrees with the previous result \eqref{exp_noinv_surv} and \eqref{exp_noinv_ruin}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{Erlang Claims Distribution}
+    \hspace{5.3mm}An Erlang distribution is a special case of Gamma distributions where the shape parameter \(k\) is an integer. If the claims distribution follows Erlang distribution, for simplicity we let \(shape=k=2\) and \(rate=\beta=2\) such that the mean of the distribution is \(1\), i.e. 
+    \[X_i\sim Gamma(k=2,\beta)\]
+    Then we have,
+    \begin{align*}
+     F(x)&=\gamma(2,\beta x)=1-e^{-\beta x}-\beta xe^{-\beta x},
+     \hspace{0.5cm}
+     f(x)=\beta^2xe^{-\beta x}\\
+     \mu&=\frac{2}{\beta}\\
+     \Omega(s)&=\mathcal{L}\{\beta^2xe^{-\beta x}\}\\
+     &=\frac{\beta^2}{(s+\beta)^2}
+    \end{align*}
+    Equation \eqref{Lap-Tr} becomes,
+    \begin{align*}
+        \Phi(s)&=\frac{c-\lambda}{cs+\frac{\beta^2\lambda}{(s+\beta)^2}-\lambda}\\
+        &=\frac{(c-\lambda)(s+\beta)^2}{s[cs^2+(2c\beta-\lambda)s+\beta(c\beta-2\lambda)]}\\
+        &=\frac{(c-\lambda)(s+\beta)^2}{cs[s^2+(2\beta-\lambda/c)s+\beta(\beta-2\lambda/c)]}\\
+        &=\frac{(c-\lambda)(s+\beta)^2}{cs(s-r_1)(s-r_2)}\numberthis\label{laplace_gamma_inv}\\
+        r_1&=\frac{-(2\beta-\lambda/c)+\sqrt{(2\beta-\lambda/c)^2-4\beta(\beta-2\lambda/c)}}{2}<0,
+        \hspace{0.5cm}
+        c>\lambda\mu=\frac{2\lambda}{\beta}\\
+        r_2&=\frac{-(2\beta-\lambda/c)-\sqrt{(2\beta-\lambda/c)^2-4\beta(\beta-2\lambda/c)}}{2}<0,
+        \hspace{0.5cm}
+        c>\frac{2\lambda}{\beta}
+    \end{align*}
+    By partial fraction, \eqref{laplace_gamma_inv} becomes,
+    \begin{align*}
+        \Phi(s)&=\frac{\beta c-\beta\lambda}{\beta c-2\lambda}\frac{1}{s}+\frac{(c-\lambda)(r_1+\beta)^2}{cr_1(r_1-r_2)}\frac{1}{s-r_1}+\frac{(c-\lambda)(r_2+\beta)^2}{cr_2(r_2-r_1)}\frac{1}{s-r_2}\\
+        \phi(u)&=\frac{\beta c-\beta\lambda}{\beta c-2\lambda}+\frac{(c-\lambda)(r_1+\beta)^2}{cr_1(r_1-r_2)}e^{r_1u}+\frac{(c-\lambda)(r_2+\beta)^2}{cr_2(r_2-r_1)}e^{r_2u}\numberthis\label{gamma_noinv_surv}
+    \end{align*}
+    \textcolor{red}{If \(\beta=2\), \eqref{gamma_noinv_surv} satisfies $\displaystyle\lim_{u\to \infty}\phi(u)=1$.}
+    The simulation results are,
+    \begin{flushleft}
+        \includegraphics[scale=0.42]{gammaplots/plots_theta_05.pdf}
+        \includegraphics[scale=0.42]{gammaplots/plots_theta_04.pdf}\\
+        \includegraphics[scale=0.42]{gammaplots/plots_theta_03.pdf}
+        \includegraphics[scale=0.42]{gammaplots/plots_theta_02.pdf}\\
+        \includegraphics[scale=0.42]{gammaplots/plots_theta_01.pdf}
+        \includegraphics[scale=0.42]{gammaplots/plots_theta_0.pdf}\\
+    \end{flushleft}
+\vspace{1 cm}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Cramer-Lundberg Model: Constant investment income}
+
+\subsection{Exponential Claims Distribution}
+
+Recall equation \eqref{CL-eq}, the left side indicating the constant cash-inflow from premiums. A similar equation consisting stochastic investment is stated by Asmussen as equation (6.1) in his book\cite{ref01}. To use the same equation for constant investment, there would be no variance and no Brownian motion, i.e. 
+\begin{equation}\label{CL-eq-with-r}
+    (c+ru)\phi'(u)=\lambda\Big[\phi(u)-\int_{0}^{u}\phi(u-x)f(x)dx\Big]
+\end{equation}
+when the claim distribution is exponential, $f(x)=\alpha e^{-\alpha x}$, then \eqref{CL-eq-with-r} becomes,
+\begin{equation}\label{CL-eq-with-r-exp}
+    (c+ru)\phi'(u)=\lambda\Big[\phi(u)-\int_{0}^{u}\phi(u-x)\alpha e^{-\alpha x}dx\Big]
+\end{equation}
+where
+\begin{equation}\label{exp_inv_IC}
+    \phi(\infty)=1,
+    \hspace{0.5cm}
+    c\phi'(0)-\lambda\phi(0)=0.
+\end{equation}
+Equation \eqref{CL-eq-with-r-exp} cannot be solved easily using Laplace Transformation. Instead, we convert \eqref{CL-eq-with-r-exp} into an ODE. First we let $y=u-x$, \\
+\begin{align*}
+    \int_{0}^{u}\phi(u-x)\alpha e^{-\alpha x}dx= \alpha e^{-\alpha u} \int_{0}^{u}\phi(y)e^{\alpha y}dy
+\end{align*}
+now \eqref{CL-eq-with-r-exp} becomes,
+\begin{equation}\label{exp_inv_integro_differential}
+    (c+ru)[e^{\alpha u}\phi'(u)]=\lambda\Big[e^{\alpha u}\phi(u)-\alpha\int_{0}^{u}\phi(y)e^{\alpha y}dy\Big]
+\end{equation}
+we now differentiate both sides,
+\begin{align*}
+    re^{\alpha u}\phi'(u)+(c+ru)[\alpha e^{\alpha u}\phi'(u)+e^{\alpha u}\phi''(u)]=\lambda\Big[e^{\alpha u}\phi'(u)+\alpha e^{\alpha u}\phi(u)-\alpha\phi(u)e^{\alpha u}\Big]\\
+\end{align*}
+by grouping terms,
+\begin{equation}
+    \frac{\phi''(u)}{\phi'(u)}=\frac{\lambda-r-\alpha(c+ru)}{c+ru}\\
+\end{equation}
+by integrating both sides,
+\begin{align*}
+    ln[\phi'(u)]&=\frac{\lambda-r}{r}ln(c+ru)-\alpha u+K\\
+    \phi'(u)&=K_1(c+ru)^{\frac{\lambda}{r}-1}e^{-\alpha u}\numberthis \label{exp_inv_differential}
+\end{align*}
+by integrating again,
+\begin{equation}
+    \phi(u)=K_2-K_1\int^{\infty}_{u}(c+r\hat{u})^{\frac{\lambda}{r}-1}e^{-\alpha \hat{u}}d\hat{u}
+\end{equation}
+now we let \(w=c+r\hat{u}\),
+\begin{align*}
+    \phi(u)&=K_2-\frac{K_1}{r}\int^{\infty}_{c+ru}w^{\frac{\lambda}{r}-1}e^{-\alpha (\frac{w-c}{r})}dw\\
+    &=K_2-K_1\Big(\frac{r}{\alpha}\Big)^{\frac{\lambda}{r}-1}\frac{e^{\frac{\alpha c}{r}}}{\alpha}\int^{\infty}_{c+ru}\Big(\frac{\alpha w}{r}\Big)^{\frac{\lambda}{r}-1}e^{- (\frac{\alpha w}{r})}d\Big(\frac{\alpha w}{r}\Big)\\
+    &=K_2-K_1\Big(\frac{r}{\alpha}\Big)^{\frac{\lambda}{r}-1}\frac{e^{\frac{\alpha c}{r}}}{\alpha}\Gamma\Big(\frac{\lambda}{r},\frac{\alpha c}{r}+\alpha u\Big)\numberthis
+\end{align*}
+where \(\Gamma\) is the upper incomplete gamma function. By \eqref{exp_inv_IC} and taking $\displaystyle\lim_{u\to \infty}$ on both sides, we can get \(K_2=1\)
+Therefore, we have a boundary value problem,
+\begin{align}
+    \phi(u)&=1-K_1\Big(\frac{r}{\alpha}\Big)^{\frac{\lambda}{r}-1}\frac{e^{\frac{\alpha c}{r}}}{\alpha}\Gamma\Big(\frac{\lambda}{r},\frac{\alpha c}{r}+\alpha u\Big)\\
+    \phi'(u)&=K_1(c+ru)^{\frac{\lambda}{r}-1}e^{-\alpha u}\\
+    c\phi'(0)-\lambda\phi(0)&=0\\
+    \phi(\infty)&=1
+\end{align}
+by substitution, $K_1$ could be found as below,
+\begin{align*}
+    K_1=\frac{\lambda}{c^{\frac{\lambda}{r}}+\frac{\lambda}{\alpha}\big(\frac{r}{\alpha}\big)^{\frac{\lambda}{r}-1}e^{\frac{\alpha c}{r}}{\alpha}\Gamma\big(\frac{\lambda}{r},\frac{\alpha c}{r}\big)}
+\end{align*}
+therefore,
+\begin{equation}\label{survival-f-exp-with-r}
+    \phi(u)=1-\frac{\lambda e^{\frac{\alpha c}{r}}\Gamma\big(\frac{\lambda}{r},\frac{\alpha c}{r}+\alpha u\big)}{r\big(\frac{\alpha c}{r}\big)^{\frac{\lambda}{r}}+\lambda e^{\frac{\alpha c}{r}}\Gamma\big(\frac{\lambda}{r},\frac{\alpha c}{r}\big)}
+\end{equation}
+The same result can be found by Mathematica using the code in Appendix.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Erlang Claims Distribution}
+\textcolor{red}{(to be continued).....}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newpage
+\section{Conclusion}
+\textcolor{red}{(to be continued).....}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{References}
+\begingroup
+\renewcommand{\section}[2]{}%
+\begin{thebibliography}{}
+%%%%
+\bibitem{ref01} Soren Asmussen, Hansjorg Albrecher. \textit{Ruin Probabilities, 2nd Edition}. 1903.
+%%%%
+\end{thebibliography}
+\endgroup
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newpage
+\section{Appendix}
+Written by Professor Charles Tier, equation \eqref{survival-f-exp-with-r} can be found by Mathematica:\\
+\vskip 0.5cm
+\begin{flushleft}
+\includegraphics[scale=0.65]{mathematica_capscreen.pdf}
+\end{flushleft}
+\end{document}
